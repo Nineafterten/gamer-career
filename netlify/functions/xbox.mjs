@@ -29,7 +29,13 @@ export async function handler(event) {
 
   try {
     const res = await fetch(`${BASE}${path}`, {
-      headers: { 'X-Authorization': key, Accept: 'application/json' },
+      headers: {
+        'X-Authorization': key,
+        Accept: 'application/json',
+        // Some endpoints (e.g. title history) forward to Xbox Live's titlehub,
+        // which rejects an "Accept-Language: *" — send a concrete locale.
+        'Accept-Language': 'en-US',
+      },
     });
     const body = await res.text();
     return {
