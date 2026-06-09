@@ -10,16 +10,23 @@ is a one-time setup; after that, deploys are a single command.
 - (Optional, for Xbox sync) a free [OpenXBL](https://xbl.io) key, authorized with the Xbox
   account behind your gamertag (NineAfterTen).
 
-## 1. First deploy
+## 1. First deploy — no GitHub required
+
+This deploys the built folder straight from your Mac via the Netlify CLI; you do **not** need
+a GitHub repo (the local `git` history here is just for your own version-tracking).
+
 ```bash
 npm install
 npm run build            # sanity check it builds
 npm i -g netlify-cli     # if you don't have it
 netlify login            # opens the browser to authorize
-netlify init             # create/link a Netlify site (pick a name → nineafterten)
-netlify deploy --build            # deploy a draft URL to smoke-test
-netlify deploy --build --prod     # promote to production
+netlify deploy --build   # first run: choose "Create & configure a new site" → manual deploy,
+                         # name it (e.g. nineafterten). Gives a draft URL to smoke-test.
+netlify deploy --build --prod   # promote to production
 ```
+
+*(Optional, later: if you ever want cloud code backup + auto-deploy on every change, create a
+GitHub repo and `git push` to it, then connect it in the Netlify dashboard. Not needed to ship.)*
 
 ## 2. Configure environment + keys
 - **Xbox sync:** in the Netlify dashboard → *Site settings → Environment variables*, add
