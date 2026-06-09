@@ -1,0 +1,21 @@
+# Netlify deploy config. The app itself is static/client-only; the single
+# function is a stateless proxy for the Xbox (OpenXBL) API — see DEPLOY.md.
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+[functions]
+  directory = "netlify/functions"
+
+# Xbox proxy: same-origin endpoint the browser calls (key stays server-side).
+[[redirects]]
+  from = "/api/xbox"
+  to = "/.netlify/functions/xbox"
+  status = 200
+
+# SPA fallback: let React Router handle client-side routes on hard refresh.
+# (Listed last so the function redirect above takes precedence.)
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

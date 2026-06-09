@@ -1,0 +1,14 @@
+node_modules
+dist
+dist-ssr
+*.local
+.DS_Store
+.vscode/*
+!.vscode/extensions.json
+.claude/launch.json
+
+# Secrets — never commit. OPENXBL_KEY lives in Netlify env / a local .env.
+.env
+.env.*
+!.env.example
+.netlify

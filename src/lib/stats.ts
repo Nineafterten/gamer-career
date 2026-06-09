@@ -1,0 +1,180 @@
+import { bucketOf } from '../data/vocab';
+import { needsReview } from '../data/presets';
+import type { Bucket, GameEntry, PlayStatus } from '../types/game';
+
+const MS_PER_DAY = 1000 * 60 * 60 * 24;
+
+export function daysBetween(fromIso: string, toIso?: string): number {
+  const from = new Date(fromIso).getTime();
+  const to = toIso ? new Date(toIso).getTime() : Date.now();
+  return Math.max(0, Math.round((to - from) / MS_PER_DAY));
+}
+
+/** The most recent transition INTO a given status. */
+export function lastEventInto(game: GameEntry, status: PlayStatus) {
+  for (let i = game.statusHistory.length - 1; i >= 0; i--) {
+    if (game.statusHistory[i].status === status) return game.statusHistory[i];
+  }
+  return undefined;
+}
+
+/** The earliest transition into any status within a bucket. */
+export function firstEventIntoBucket(game: GameEntry, bucket: Bucket) {
+  return game.statusHistory.find((e) => e.bucket === bucket);
+}
+
+/** ISO timestamp the game (currently in backlog) entered the backlog. */
+export function backlogSince(game: GameEntry): string | undefined {
+  if (game.status !== 'backlog') return undefined;
+  return lastEventInto(game, 'backlog')?.at;
+}
+
+/** ISO timestamp the game first moved into a Current play state. */
+export function inPlaySince(game: GameEntry): string | undefined {
+  if (bucketOf(game.status) !== 'current') return undefined;
+  return firstEventIntoBucket(game, 'current')?.at;
+}
+
+export function wishlistSince(game: GameEntry): string | undefined {
+  if (game.status !== 'wishlist') return undefined;
+  return lastEventInto(game, 'wishlist')?.at;
+}
+
+export function closedAt(game: GameEntry): string | undefined {
+  return firstEventIntoBucket(game, 'closed')?.at;
+}
+
+export function daysInBacklog(game: GameEntry): number | undefined {
+  const since = backlogSince(game);
+  return since ? daysBetween(since) : undefined;
+}
+
+export function daysInPlay(game: GameEntry): number | undefined {
+  const since = inPlaySince(game);
+  return since ? daysBetween(since) : undefined;
+}
+
+export function daysOnWishlist(game: GameEntry): number | undefined {
+  const since = wishlistSince(game);
+  return since ? daysBetween(since) : undefined;
+}
+
+/** For abandoned games: days from first play (or creation) to the abandon event. */
+export function daysHeldBeforeAbandon(game: GameEntry): number | undefined {
+  if (game.status !== 'abandoned') return undefined;
+  const abandonEvent = lastEventInto(game, 'abandoned');
+  if (!abandonEvent) return undefined;
+  const start = firstEventIntoBucket(game, 'current')?.at ?? game.createdAt;
+  return daysBetween(start, abandonEvent.at);
+}
+
+function avg(values: number[]): number | undefined {
+  if (!values.length) return undefined;
+  return values.reduce((a, b) => a + b, 0) / values.length;
+}
+
+export interface Kpis {
+  total: number;
+  notStarted: number;
+  backlog: number;
+  inPlay: number; // active + passive
+  paused: number;
+  wishlist: number;
+  completed: number;
+  doneWith: number;
+  abandoned: number;
+  closedPositive: number; // completed + doneWith
+  needsReview: number; // positively-closed games missing a personal score
+  favorites: number;
+  avgPersonal?: number; // 0-100
+  avgPublic?: number; // 0-100
+  completionRate: number; // 0-1, closedPositive / total
+  playedThisYear: number;
+}
+
+export function computeKpis(allGames: GameEntry[]): Kpis {
+  // Entries explicitly excluded (e.g. games covered by a collection) don't
+  // count toward totals/averages so compilations aren't double-counted.
+  const games = allGames.filter((g) => !g.excludeFromStats);
+  const byStatus = (s: PlayStatus) => games.filter((g) => g.status === s).length;
+  const thisYear = new Date().getFullYear();
+
+  const completed = byStatus('completed');
+  const doneWith = byStatus('done_with');
+  const closedPositive = completed + doneWith;
+  const total = games.length;
+
+  const playedThisYear = games.filter((g) => {
+    const since = inPlaySince(g) ?? closedAt(g);
+    return since ? new Date(since).getFullYear() === thisYear : false;
+  }).length;
+
+  return {
+    total,
+    notStarted: byStatus('not_started'),
+    backlog: byStatus('backlog'),
+    inPlay: byStatus('active') + byStatus('passive'),
+    paused: byStatus('paused'),
+    wishlist: byStatus('wishlist'),
+    completed,
+    doneWith,
+    abandoned: byStatus('abandoned'),
+    closedPositive,
+    needsReview: games.filter(needsReview).length,
+    favorites: games.filter((g) => g.favorite).length,
+    avgPersonal: avg(
+      games
+        .map((g) => g.personalScore)
+        .filter((v): v is number => typeof v === 'number'),
+    ),
+    avgPublic: avg(
+      games
+        .map((g) => g.publicScore)
+        .filter((v): v is number => typeof v === 'number'),
+    ),
+    completionRate: total ? closedPositive / total : 0,
+    playedThisYear,
+  };
+}
+
+/** Convert internal 0-100 score to a display 0-10 with one decimal. */
+export function toDisplayScore(score?: number): string {
+  if (typeof score !== 'number') return '—';
+  return (score / 10).toFixed(1);
+}
+
+export interface ScoreBin {
+  label: string; // e.g. "8–9"
+  mine: number;
+  public: number;
+}
+
+/** Histogram of scores binned into ten 1-point buckets (0–1 … 9–10). */
+export function scoreHistogram(games: GameEntry[]): ScoreBin[] {
+  const bins: ScoreBin[] = Array.from({ length: 10 }, (_, i) => ({
+    label: `${i}–${i + 1}`,
+    mine: 0,
+    public: 0,
+  }));
+  // 0-100 internal score → bin index 0..9 (100 lands in the top bucket).
+  const idx = (score: number) => Math.min(9, Math.max(0, Math.floor(score / 10)));
+  for (const g of games) {
+    if (typeof g.personalScore === 'number') bins[idx(g.personalScore)].mine += 1;
+    if (typeof g.publicScore === 'number') bins[idx(g.publicScore)].public += 1;
+  }
+  return bins;
+}
+
+/** Whole days between start and end play dates, if both are set. */
+export function playTimeDays(start?: string, end?: string): number | undefined {
+  if (!start || !end) return undefined;
+  return daysBetween(start, end);
+}
+
+/** Display for total play time: a day count, "TBD" (started, no end), or "—". */
+export function playTimeLabel(start?: string, end?: string): string {
+  if (!start) return '—';
+  if (!end) return 'TBD';
+  const d = daysBetween(start, end);
+  return `${d} day${d === 1 ? '' : 's'}`;
+}

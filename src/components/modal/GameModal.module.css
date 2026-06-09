@@ -1,0 +1,22 @@
+.matchesBox {
+  border: 1px solid var(--mantine-color-default-border);
+  border-radius: var(--mantine-radius-md);
+}
+
+.matchRow {
+  cursor: pointer;
+  border-radius: 6px;
+}
+
+.matchRow:hover {
+  background: var(--mantine-color-default-hover);
+}
+
+.matchesList {
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.grow {
+  flex: 1;
+}

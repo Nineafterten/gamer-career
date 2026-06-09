@@ -1,0 +1,21 @@
+.thumb {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--mantine-radius-sm);
+  background: var(--gc-card-placeholder);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+.grow {
+  flex: 1;
+  min-width: 0; /* lets lineClamp truncate inside a flex row */
+}
+
+.scoreCell {
+  text-align: right;
+}

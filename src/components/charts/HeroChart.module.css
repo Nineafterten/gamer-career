@@ -1,0 +1,16 @@
+.tooltip {
+  background: var(--mantine-color-body);
+  border: 1px solid var(--mantine-color-default-border);
+  border-radius: 8px;
+  color: var(--mantine-color-text);
+  font-size: 12px;
+  padding: 6px 10px;
+}
+
+.tooltipTitle {
+  font-weight: 600;
+}
+
+.tooltipSub {
+  color: var(--mantine-color-dimmed);
+}

@@ -1,0 +1,113 @@
+import type { GameEntry } from '../types/game';
+
+/** Which hero visualization a view renders. */
+export type ChartKind =
+  | 'timeline'
+  | 'backlog'
+  | 'inplay'
+  | 'rating'
+  | 'abandoned'
+  | 'genre'
+  | 'wishlist'
+  | 'review';
+
+/** A positively-closed game (completed/done with) that has no personal score yet. */
+export function needsReview(g: GameEntry): boolean {
+  return (
+    (g.status === 'completed' || g.status === 'done_with') &&
+    typeof g.personalScore !== 'number'
+  );
+}
+
+export interface PresetConfig {
+  key: string;
+  label: string;
+  description: string;
+  chart: ChartKind;
+  /** Membership test for the preset. */
+  match: (g: GameEntry) => boolean;
+}
+
+export const PRESETS: Record<string, PresetConfig> = {
+  all: {
+    key: 'all',
+    label: 'All Games',
+    description: 'Your complete library, plotted in release order.',
+    chart: 'timeline',
+    match: () => true,
+  },
+  not_started: {
+    key: 'not_started',
+    label: 'Not Started',
+    description: 'Bought and ready to go — just not begun yet.',
+    chart: 'timeline',
+    match: (g) => g.status === 'not_started',
+  },
+  backlog: {
+    key: 'backlog',
+    label: 'Backlog',
+    description: 'Owned, waiting their turn. Longest-waiting first.',
+    chart: 'backlog',
+    match: (g) => g.status === 'backlog',
+  },
+  in_play: {
+    key: 'in_play',
+    label: 'In Play',
+    description: 'Active and passive games — and how long they have been going.',
+    chart: 'inplay',
+    match: (g) => g.status === 'active' || g.status === 'passive',
+  },
+  paused: {
+    key: 'paused',
+    label: 'Paused',
+    description: 'Started, but on hold for now — how long each has been parked.',
+    chart: 'inplay',
+    match: (g) => g.status === 'paused',
+  },
+  completed: {
+    key: 'completed',
+    label: 'Completed',
+    description: 'Fully finished — your score vs. the public score.',
+    chart: 'rating',
+    match: (g) => g.status === 'completed',
+  },
+  done_with: {
+    key: 'done_with',
+    label: 'Done With',
+    description: 'Finished enough to move on — your score vs. the public score.',
+    chart: 'rating',
+    match: (g) => g.status === 'done_with',
+  },
+  needs_review: {
+    key: 'needs_review',
+    label: 'Needs Review',
+    description: 'Finished games still missing a personal score — your cleanup list.',
+    chart: 'review',
+    match: needsReview,
+  },
+  abandoned: {
+    key: 'abandoned',
+    label: 'Abandoned',
+    description: 'What made you walk away, and how long you held on first.',
+    chart: 'abandoned',
+    match: (g) => g.status === 'abandoned',
+  },
+  favorites: {
+    key: 'favorites',
+    label: 'Favorites',
+    description: 'Your standouts, clustered by genre and series.',
+    chart: 'genre',
+    match: (g) => g.favorite,
+  },
+  wishlist: {
+    key: 'wishlist',
+    label: 'Wishlist',
+    description: 'Want to buy — how long each has been on the list.',
+    chart: 'wishlist',
+    match: (g) => g.status === 'wishlist',
+  },
+};
+
+export function getPreset(key?: string | null): PresetConfig {
+  return (key && PRESETS[key]) || PRESETS.all;
+}
