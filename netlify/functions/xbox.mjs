@@ -8,7 +8,9 @@
 //
 // It stores nothing — game data still lives only in the user's browser.
 
-const BASE = 'https://api.xbl.io';
+// Correct OpenXBL host is xbl.io (verified: /api/v2/account → 401 "API key
+// required"). The api.xbl.io subdomain 404s these paths.
+const BASE = 'https://xbl.io';
 
 export async function handler(event) {
   const key = process.env.OPENXBL_KEY;

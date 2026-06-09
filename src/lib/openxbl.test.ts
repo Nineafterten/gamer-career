@@ -58,7 +58,7 @@ describe('xbox proxy handler', () => {
     expect(res.statusCode).toBe(200);
     expect(res.body).toContain('ok');
     expect(fetchMock).toHaveBeenCalledWith(
-      'https://api.xbl.io/api/v2/account',
+      'https://xbl.io/api/v2/account',
       expect.objectContaining({
         headers: expect.objectContaining({ 'X-Authorization': 'secret' }),
       }),
