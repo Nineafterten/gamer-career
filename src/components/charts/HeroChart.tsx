@@ -19,13 +19,7 @@ import {
 
 import type { ChartKind } from '../../data/presets';
 import { bucketOf } from '../../data/vocab';
-import {
-  daysInBacklog,
-  daysInPlay,
-  daysHeldBeforeAbandon,
-  daysOnWishlist,
-  scoreHistogram,
-} from '../../lib/stats';
+import { scoreHistogram } from '../../lib/stats';
 import type { GameEntry } from '../../types/game';
 import styles from './HeroChart.module.css';
 
@@ -156,57 +150,70 @@ function TimelineChart({ games }: { games: GameEntry[] }) {
   );
 }
 
-/* ----------------------- Horizontal aging bars ---------------------- */
-function AgingBars({
-  games,
-  metric,
-  color,
-  unit = 'days',
-  emptyMessage,
-}: {
-  games: GameEntry[];
-  metric: (g: GameEntry) => number | undefined;
-  color: string;
-  unit?: string;
-  emptyMessage: string;
-}) {
-  const data = useMemo(
-    () =>
-      games
-        .map((g) => ({ name: g.title, value: metric(g) }))
-        .filter((d): d is { name: string; value: number } => typeof d.value === 'number')
-        .sort((a, b) => b.value - a.value)
-        .slice(0, 14),
-    [games, metric],
-  );
+/* --------------------- Platform / Genre breakdown ------------------- */
+// Replaces the old time-aging bars: for a manually/retroactively curated
+// library, "days in status" only reflects when a record was last touched, so a
+// composition breakdown (what's in this status, by platform or genre) is the
+// meaningful, time-independent view.
+function countBy(games: GameEntry[], dim: 'platform' | 'genre') {
+  const counts = new Map<string, number>();
+  for (const g of games) {
+    const values = dim === 'platform' ? g.platforms : g.genres;
+    const keys = values.length ? values : ['Unspecified'];
+    for (const k of keys) counts.set(k, (counts.get(k) ?? 0) + 1);
+  }
+  return Array.from(counts.entries())
+    .map(([name, value]) => ({ name, value }))
+    .sort((a, b) => b.value - a.value)
+    .slice(0, 14);
+}
 
-  if (!data.length) return <Empty message={emptyMessage} />;
+function BreakdownChart({ games, color }: { games: GameEntry[]; color: string }) {
+  const [dim, setDim] = useState<'platform' | 'genre'>('platform');
+  const data = useMemo(() => countBy(games, dim), [games, dim]);
 
   return (
-    <ResponsiveContainer width="100%" height={HEIGHT}>
-      <BarChart
-        data={data}
-        layout="vertical"
-        margin={{ top: 5, right: 24, bottom: 5, left: 10 }}
-      >
-        <CartesianGrid stroke="var(--mantine-color-default-border)" strokeDasharray="3 3" horizontal={false} />
-        <XAxis type="number" tick={axisTick} unit={` ${unit}`} />
-        <YAxis
-          type="category"
-          dataKey="name"
-          width={150}
-          tick={axisTick}
-          tickFormatter={(v: string) => truncate(v)}
+    <Stack gap="xs">
+      <Group justify="flex-end">
+        <SegmentedControl
+          size="xs"
+          value={dim}
+          onChange={(v) => setDim(v as 'platform' | 'genre')}
+          data={[
+            { value: 'platform', label: 'Platform' },
+            { value: 'genre', label: 'Genre' },
+          ]}
         />
-        <Tooltip
-          contentStyle={tooltipStyle}
-          itemStyle={tooltipItemStyle}
-          labelStyle={tooltipLabelStyle}
-          formatter={(v) => [`${v} ${unit}`, 'Elapsed']}
-        />
-        <Bar dataKey="value" fill={color} radius={[0, 4, 4, 0]} />
-      </BarChart>
-    </ResponsiveContainer>
+      </Group>
+      {data.length ? (
+        <ResponsiveContainer width="100%" height={HEIGHT - 44}>
+          <BarChart
+            data={data}
+            layout="vertical"
+            margin={{ top: 5, right: 24, bottom: 5, left: 10 }}
+          >
+            <CartesianGrid stroke="var(--mantine-color-default-border)" strokeDasharray="3 3" horizontal={false} />
+            <XAxis type="number" tick={axisTick} allowDecimals={false} />
+            <YAxis
+              type="category"
+              dataKey="name"
+              width={150}
+              tick={axisTick}
+              tickFormatter={(v: string) => truncate(v)}
+            />
+            <Tooltip
+              contentStyle={tooltipStyle}
+              itemStyle={tooltipItemStyle}
+              labelStyle={tooltipLabelStyle}
+              formatter={(v) => [`${v}`, 'Games']}
+            />
+            <Bar dataKey="value" fill={color} radius={[0, 4, 4, 0]} />
+          </BarChart>
+        </ResponsiveContainer>
+      ) : (
+        <Empty message="No games to break down here yet." />
+      )}
+    </Stack>
   );
 }
 
@@ -368,23 +375,15 @@ function ReviewStat({ value, label }: { value: number; label: string }) {
 
 /* --------------------------- Abandoned ------------------------------ */
 function AbandonedChart({ games }: { games: GameEntry[] }) {
-  const { data, avgDays } = useMemo(() => {
+  const data = useMemo(() => {
     const counts = new Map<string, number>();
     for (const g of games) {
       for (const d of g.dislikes) counts.set(d, (counts.get(d) ?? 0) + 1);
     }
-    const rows = Array.from(counts.entries())
+    return Array.from(counts.entries())
       .map(([name, count]) => ({ name, count }))
       .sort((a, b) => b.count - a.count)
       .slice(0, 10);
-
-    const held = games
-      .map(daysHeldBeforeAbandon)
-      .filter((v): v is number => typeof v === 'number');
-    const avg = held.length
-      ? Math.round(held.reduce((a, b) => a + b, 0) / held.length)
-      : undefined;
-    return { data: rows, avgDays: avg };
   }, [games]);
 
   if (!games.length) return <Empty message="Nothing abandoned — keep it up!" />;
@@ -395,11 +394,6 @@ function AbandonedChart({ games }: { games: GameEntry[] }) {
         <Text size="sm" c="dimmed">
           {games.length} abandoned
         </Text>
-        {avgDays !== undefined && (
-          <Text size="sm" c="dimmed">
-            Avg held before quitting: <b>{avgDays} days</b>
-          </Text>
-        )}
       </Group>
       {data.length ? (
         <ResponsiveContainer width="100%" height={HEIGHT - 40}>
@@ -518,23 +512,9 @@ export function HeroChart({ kind, games }: { kind: ChartKind; games: GameEntry[]
     case 'timeline':
       return <TimelineChart games={games} />;
     case 'backlog':
-      return (
-        <AgingBars
-          games={games}
-          metric={daysInBacklog}
-          color={C.indigo}
-          emptyMessage="Nothing in the backlog right now."
-        />
-      );
+      return <BreakdownChart games={games} color={C.indigo} />;
     case 'inplay':
-      return (
-        <AgingBars
-          games={games}
-          metric={daysInPlay}
-          color={C.teal}
-          emptyMessage="No games in play right now."
-        />
-      );
+      return <BreakdownChart games={games} color={C.teal} />;
     case 'rating':
       return <RatingView games={games} />;
     case 'review':
@@ -544,14 +524,7 @@ export function HeroChart({ kind, games }: { kind: ChartKind; games: GameEntry[]
     case 'genre':
       return <GenreClusterChart games={games} />;
     case 'wishlist':
-      return (
-        <AgingBars
-          games={games}
-          metric={daysOnWishlist}
-          color={C.cyan}
-          emptyMessage="Your wishlist is empty."
-        />
-      );
+      return <BreakdownChart games={games} color={C.cyan} />;
     default:
       return <Empty message="No visualization for this view." />;
   }

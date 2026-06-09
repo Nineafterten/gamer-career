@@ -8,7 +8,6 @@ export type SortKey =
   | 'personalScore'
   | 'publicScore'
   | 'updatedAt'
-  | 'aging'
   | 'favoriteRank';
 
 export interface Filters {
@@ -35,7 +34,6 @@ const SORT_OPTIONS = [
   { value: 'personalScore', label: 'My score' },
   { value: 'publicScore', label: 'Public score' },
   { value: 'updatedAt', label: 'Recently updated' },
-  { value: 'aging', label: 'Time in status' },
   { value: 'favoriteRank', label: 'Favorite rank' },
 ];
 

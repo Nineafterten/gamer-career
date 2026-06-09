@@ -42,7 +42,7 @@ export function makeGame(overrides: Partial<GameEntry> = {}): GameEntry {
   };
 }
 
-/** ISO timestamp N days before now (for aging assertions). */
+/** ISO timestamp N days before now (for status-history assertions). */
 export function daysAgo(n: number): string {
   return new Date(Date.now() - n * 24 * 60 * 60 * 1000).toISOString();
 }

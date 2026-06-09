@@ -24,7 +24,7 @@ import {
 } from '@tabler/icons-react';
 
 import { useGames } from '../db/hooks';
-import { getPreset, type ChartKind } from '../data/presets';
+import { getPreset } from '../data/presets';
 import {
   DEFAULT_FILTERS,
   FilterBar,
@@ -35,7 +35,6 @@ import { GameCard } from '../components/cards/GameCard';
 import { GameListRow } from '../components/cards/GameListRow';
 import { HeroChart } from '../components/charts/HeroChart';
 import { useGameModal } from '../components/modal/useGameModal';
-import { daysInBacklog, daysInPlay, daysOnWishlist } from '../lib/stats';
 import type { GameEntry } from '../types/game';
 
 type GroupBy = 'none' | 'series' | 'genre' | 'collection';
@@ -47,32 +46,12 @@ const GROUP_OPTIONS = [
   { value: 'collection', label: 'Group by collection' },
 ];
 
-const AGING_CHARTS: ChartKind[] = ['backlog', 'inplay', 'wishlist'];
-
-function initialFilters(presetKey: string | null, chart: ChartKind): Filters {
-  const sort: SortKey =
-    presetKey === 'favorites'
-      ? 'favoriteRank'
-      : AGING_CHARTS.includes(chart)
-        ? 'aging'
-        : 'releaseDate';
+function initialFilters(presetKey: string | null): Filters {
+  const sort: SortKey = presetKey === 'favorites' ? 'favoriteRank' : 'releaseDate';
   return { ...DEFAULT_FILTERS, sort };
 }
 
-function agingValue(g: GameEntry, chart: ChartKind): number {
-  switch (chart) {
-    case 'backlog':
-      return daysInBacklog(g) ?? -1;
-    case 'inplay':
-      return daysInPlay(g) ?? -1;
-    case 'wishlist':
-      return daysOnWishlist(g) ?? -1;
-    default:
-      return new Date(g.updatedAt).getTime();
-  }
-}
-
-function compareBySort(a: GameEntry, b: GameEntry, sort: SortKey, chart: ChartKind): number {
+function compareBySort(a: GameEntry, b: GameEntry, sort: SortKey): number {
   switch (sort) {
     case 'title':
       return a.title.localeCompare(b.title);
@@ -84,8 +63,6 @@ function compareBySort(a: GameEntry, b: GameEntry, sort: SortKey, chart: ChartKi
       return (b.publicScore ?? -1) - (a.publicScore ?? -1);
     case 'updatedAt':
       return b.updatedAt.localeCompare(a.updatedAt);
-    case 'aging':
-      return agingValue(b, chart) - agingValue(a, chart);
     case 'favoriteRank':
       // Ranked games first (1 = top); unranked sink to the bottom.
       return (a.favoriteRank ?? Infinity) - (b.favoriteRank ?? Infinity);
@@ -158,9 +135,7 @@ export function GamesView() {
   const games = useGames();
   const modal = useGameModal();
 
-  const [filters, setFilters] = useState<Filters>(() =>
-    initialFilters(presetKey, preset.chart),
-  );
+  const [filters, setFilters] = useState<Filters>(() => initialFilters(presetKey));
   // View mode persists across navigation; grouping deliberately does not.
   const [viewMode, setViewMode] = useLocalStorage<'grid' | 'list'>({
     key: 'gc-view-mode',
@@ -170,7 +145,7 @@ export function GamesView() {
 
   // Reset filters when the preset changes (e.g. navigating via a KPI).
   useEffect(() => {
-    setFilters(initialFilters(presetKey, preset.chart));
+    setFilters(initialFilters(presetKey));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [preset.key]);
 
@@ -206,8 +181,8 @@ export function GamesView() {
         return false;
       return true;
     });
-    return filtered.sort((a, b) => compareBySort(a, b, filters.sort, preset.chart));
-  }, [candidates, filters, preset.chart]);
+    return filtered.sort((a, b) => compareBySort(a, b, filters.sort));
+  }, [candidates, filters]);
 
   const groups = useMemo(
     () => groupGames(visible, groupBy, games ?? []),

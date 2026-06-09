@@ -6,23 +6,20 @@ import { Notifications } from '@mantine/notifications';
 import { BrowserRouter } from 'react-router-dom';
 
 import '@mantine/core/styles.css';
-import '@mantine/charts/styles.css';
 import '@mantine/notifications/styles.css';
 import './index.css';
 
 import { theme } from './theme';
 import { App } from './App';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
-import { ensureSeeded } from './db/seed';
 import { getSettings, db } from './db/database';
 import * as repo from './db/repository';
 
 async function bootstrap() {
   try {
     await getSettings(); // ensure the settings row exists before any read-only hook
-    await ensureSeeded();
   } catch (err) {
-    // Seeding failures shouldn't block the app from loading.
+    // A bootstrap failure shouldn't block the app from loading.
     console.error('Bootstrap failed', err);
   }
 

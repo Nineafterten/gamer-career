@@ -1,12 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import {
   computeKpis,
-  daysBetween,
-  daysHeldBeforeAbandon,
-  daysInBacklog,
   inPlaySince,
-  playTimeDays,
-  playTimeLabel,
+  repeatsCount,
   scoreHistogram,
   toDisplayScore,
 } from './stats';
@@ -21,25 +17,6 @@ function history(...events: Array<[string, string]>): StatusEvent[] {
     at,
   }));
 }
-
-describe('daysBetween', () => {
-  it('is 0 for the same instant', () => {
-    const t = '2025-01-01T00:00:00.000Z';
-    expect(daysBetween(t, t)).toBe(0);
-  });
-
-  it('rounds the day difference', () => {
-    expect(
-      daysBetween('2025-01-01T00:00:00.000Z', '2025-01-11T00:00:00.000Z'),
-    ).toBe(10);
-  });
-
-  it('never goes negative', () => {
-    expect(
-      daysBetween('2025-01-11T00:00:00.000Z', '2025-01-01T00:00:00.000Z'),
-    ).toBe(0);
-  });
-});
 
 describe('toDisplayScore', () => {
   it('shows an em dash when unset', () => {
@@ -66,46 +43,43 @@ describe('scoreHistogram', () => {
   });
 });
 
-describe('play time', () => {
-  it('computes day counts only when both dates are set', () => {
-    expect(playTimeDays('2025-01-01', '2025-01-11')).toBe(10);
-    expect(playTimeDays('2025-01-01', undefined)).toBeUndefined();
-    expect(playTimeDays(undefined, undefined)).toBeUndefined();
-  });
-  it('labels: day count, TBD (started, no end), or em dash', () => {
-    expect(playTimeLabel('2025-01-01', '2025-01-02')).toBe('1 day');
-    expect(playTimeLabel('2025-01-01', '2025-01-11')).toBe('10 days');
-    expect(playTimeLabel('2025-01-01', undefined)).toBe('TBD');
-    expect(playTimeLabel(undefined, undefined)).toBe('—');
-  });
-});
-
-describe('aging derivations', () => {
-  it('daysInBacklog measures time since entering backlog (only when still in backlog)', () => {
-    const g = makeGame({
-      status: 'backlog',
-      statusHistory: history(['not_started', daysAgo(40)], ['backlog', daysAgo(10)]),
-    });
-    expect(daysInBacklog(g)).toBe(10);
-    const notBacklog = makeGame({ status: 'active' });
-    expect(daysInBacklog(notBacklog)).toBeUndefined();
-  });
-
-  it('inPlaySince uses the first Current-bucket event', () => {
+describe('inPlaySince', () => {
+  it('uses the first Current-bucket event', () => {
     const g = makeGame({
       status: 'paused',
       statusHistory: history(['active', daysAgo(30)], ['paused', daysAgo(5)]),
     });
-    const since = inPlaySince(g);
-    expect(since).toBe(daysAgo(30));
+    expect(inPlaySince(g)).toBe(daysAgo(30));
   });
 
-  it('daysHeldBeforeAbandon spans first play to the abandon event', () => {
-    const g = makeGame({
-      status: 'abandoned',
-      statusHistory: history(['active', daysAgo(20)], ['abandoned', daysAgo(5)]),
-    });
-    expect(daysHeldBeforeAbandon(g)).toBe(15);
+  it('is undefined when the game is not in a Current state', () => {
+    expect(inPlaySince(makeGame({ status: 'backlog' }))).toBeUndefined();
+  });
+});
+
+describe('repeatsCount', () => {
+  it('counts titles present both standalone and as a collection member', () => {
+    const games = [
+      makeGame({ title: 'Assassin’s Creed II' }), // standalone
+      makeGame({ title: 'Assassin’s Creed II', collectionId: 'ezio', excludeFromStats: true }), // member
+      makeGame({ id: 'ezio', title: 'The Ezio Collection', isCollection: true }), // container — skipped
+      makeGame({ title: 'Halo' }), // standalone only
+    ];
+    expect(repeatsCount(games)).toBe(1);
+  });
+
+  it('matches across number-word/roman differences and is 0 with no overlap', () => {
+    const repeated = [
+      makeGame({ title: 'Final Fantasy VII' }), // standalone
+      makeGame({ title: 'Final Fantasy 7', collectionId: 'c' }), // member, same canon title
+    ];
+    expect(repeatsCount(repeated)).toBe(1);
+
+    const distinct = [
+      makeGame({ title: 'Halo' }),
+      makeGame({ title: 'Doom', collectionId: 'c' }),
+    ];
+    expect(repeatsCount(distinct)).toBe(0);
   });
 });
 
@@ -129,6 +103,7 @@ describe('computeKpis', () => {
     expect(k.abandoned).toBe(1);
     expect(k.needsReview).toBe(1); // the done_with game has no personal score
     expect(k.favorites).toBe(1);
+    expect(k.repeats).toBe(0);
     expect(k.avgPersonal).toBe(90);
     expect(k.avgPublic).toBe(75);
     expect(k.completionRate).toBeCloseTo(2 / 5);
@@ -149,5 +124,20 @@ describe('computeKpis', () => {
     expect(k.favorites).toBe(1);
     expect(k.completed).toBe(1);
     expect(k.avgPersonal).toBe(80);
+  });
+
+  it('counts repeats from the full library, even excludeFromStats members', () => {
+    const games = [
+      makeGame({ title: 'Assassin’s Creed II', status: 'completed' }),
+      makeGame({
+        title: 'Assassin’s Creed II',
+        status: 'completed',
+        collectionId: 'ezio',
+        excludeFromStats: true,
+      }),
+    ];
+    const k = computeKpis(games);
+    expect(k.total).toBe(1); // the excluded member doesn't inflate the total
+    expect(k.repeats).toBe(1); // …but it still registers as a repeat
   });
 });

@@ -1,5 +1,8 @@
 # 🎮 Gamer Career
 
+<!-- TODO (presentation): add example screenshots and link the sample seed lists in `seeds/`
+     once the UI has rich data to show off. -->
+
 A personal dashboard & wiki for tracking your video-game hobby career — record every
 game you've played, curate them by play status, and explore your history through
 data visualizations. Fully client-side: your data lives in your browser, with a
@@ -25,25 +28,24 @@ npm run test:run   # run tests once
 npm run coverage   # tests + coverage report
 ```
 
-On first run the app seeds a starter library of 23 games (public info only — every game
-defaults to **Not Started** so you curate your own statuses, scores, and favorites).
+On first run the app starts empty — add games one at a time, paste/upload a list via **Bulk
+Add**, or import a JSON backup. Every game defaults to **Not Started**, so you curate your own
+statuses, scores, and favorites.
 
 ## Features
 
-- **Landing dashboard** — KPI cards (total, in play, backlog, completed, favorites,
-  wishlist, abandoned, average score, completion rate, played this year). Each card
-  deep-links into the games view with the matching filter + visualization.
+- **Landing dashboard** — KPI cards (total, in play, backlog, completed, favorites, wishlist,
+  repeats, abandoned, average score, completion rate, played this year). Each card deep-links
+  into the games view with the matching filter + visualization.
 - **Primary games view** — a hero visualization over a filterable/sortable card grid.
   The hero chart changes per view:
   | View | Visualization |
   |------|---------------|
   | All Games | Chronological timeline (release date × public score) |
-  | Backlog | Aging bars — how long each has waited |
-  | In Play | Aging bars — how long each has been going |
+  | Backlog / In Play / Paused / Wishlist | Breakdown bars by platform or genre (toggle) |
   | Completed & Done With | Your score vs. the public score |
-  | Abandoned | Top dislikes + average days held before quitting |
+  | Abandoned | Top dislikes that drove you away |
   | Favorites | Genre/series cluster (treemap) |
-  | Wishlist | Time-on-wishlist bars |
 - **Grid / List views** — toggle the games view between a card grid and a compact list
   (your choice persists).
 - **Grouping** — group the games view by None / Series / Genre / Collection, with section
@@ -57,7 +59,7 @@ defaults to **Not Started** so you curate your own statuses, scores, and favorit
 - **Game entry modal** — create / view / edit / delete a record. Delete always asks for
   confirmation. The **Fetch details** button autofills public info from RAWG (see below).
 - **Settings** — RAWG API key, light/dark/auto theme, JSON export/import, a confirm-gated
-  reset / clear, and the app version.
+  "clear all games", and the app version.
 
 ## Play-status model
 
@@ -67,9 +69,8 @@ Status is the granular sub-status; the bucket is derived.
 - **Current** — Active · Passive · Paused
 - **Closed** — Completed · Done With · Abandoned
 
-Every status change is timestamped into the record's `statusHistory`. That's what powers
-the aging visualizations ("how long in the backlog / in play") and the
-played-this-year counts.
+Every status change is timestamped into the record's `statusHistory`, which powers the
+played-this-year count.
 
 ## Metadata autofill (RAWG)
 
@@ -99,7 +100,7 @@ SPA redirect so client routes survive a refresh) — point Netlify at the repo a
 
 - `public/robots.txt` + a `noindex` meta keep the personal site out of search engines.
 - No auth is needed: your data lives only in your browser, not on the server, so a visitor
-  to the URL just sees an empty seeded app.
+  to the URL just sees an empty app.
 - **RAWG key is per device** — it's stored locally, never in the build or exports. Keep the
   canonical key in your password manager and paste it into Settings once per device.
 
@@ -113,8 +114,8 @@ with `npm version patch|minor|major`.
 ```
 src/
   types/game.ts        # GameEntry, PlayStatus, StatusEvent
-  data/                # vocab (statuses, likes…), presets (view↔chart), seed.json
-  db/                  # Dexie schema, repository (status-transition timestamping), seed, hooks
+  data/                # vocab (statuses, likes…), presets (view↔chart)
+  db/                  # Dexie schema, repository (status-transition timestamping), hooks
   lib/                 # rawg client, backup (export/import), stats, bulkImport (parse/dedupe)
   routes/              # Dashboard, GamesView, BulkImport, Settings
   components/          # layout (App shell), kpi, cards, filters, modal, charts, common

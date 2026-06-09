@@ -22,7 +22,6 @@ import {
   IconDownload,
   IconKey,
   IconPalette,
-  IconRefresh,
   IconTrash,
   IconUpload,
 } from '@tabler/icons-react';
@@ -30,7 +29,6 @@ import {
 import { useGames, useSettings } from '../db/hooks';
 import { saveSettings } from '../db/database';
 import { clearAllGames } from '../db/repository';
-import { resetToSeed } from '../db/seed';
 import { exportToFile, importFromFile } from '../lib/backup';
 import { getTitleHistory, titleHistoryToRows } from '../lib/openxbl';
 import styles from './Settings.module.css';
@@ -100,25 +98,6 @@ export function Settings() {
     } catch (err) {
       notifications.show({ color: 'red', message: (err as Error).message });
     }
-  }
-
-  function confirmReset() {
-    modals.openConfirmModal({
-      title: 'Reset to the starter library?',
-      centered: true,
-      children: (
-        <Text size="sm">
-          This deletes all current games and restores the original 23 seeded titles.
-          Export a backup first if you want to keep your edits.
-        </Text>
-      ),
-      labels: { confirm: 'Reset', cancel: 'Cancel' },
-      confirmProps: { color: 'red' },
-      onConfirm: async () => {
-        await resetToSeed();
-        notifications.show({ color: 'teal', message: 'Library reset to the starter set.' });
-      },
-    });
   }
 
   function confirmClear() {
@@ -248,15 +227,11 @@ export function Settings() {
           <IconTrash size={20} color="var(--mantine-color-red-6)" />
           <Title order={4}>Danger zone</Title>
         </Group>
+        <Text size="sm" c="dimmed" mb="sm">
+          Permanently remove every game from this browser. Export a backup first if you
+          want to keep your library.
+        </Text>
         <Group>
-          <Button
-            variant="light"
-            color="orange"
-            leftSection={<IconRefresh size={16} />}
-            onClick={confirmReset}
-          >
-            Reset to starter library
-          </Button>
           <Button
             variant="light"
             color="red"

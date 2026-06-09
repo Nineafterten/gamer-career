@@ -49,8 +49,6 @@ export interface GameEntry {
 
   // --- Personal information (provided by the user) ---
   status: PlayStatus;
-  startDate?: string; // ISO date (YYYY-MM-DD) — when it first entered a Current state
-  endDate?: string; // ISO date — when it entered a Closed state
   personalScore?: number; // 0-100 internally (entered 1-10, x10)
   likes: string[];
   dislikes: string[];

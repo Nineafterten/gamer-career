@@ -55,7 +55,7 @@ export async function createGame(draft: GameDraft): Promise<GameEntry> {
 
 /**
  * Patch an existing record. If `status` changes, a StatusEvent is appended so
- * the aging visualizations can derive how long a game has sat in each state.
+ * the played-this-year count and status timeline can be derived.
  */
 export async function updateGame(
   id: string,
@@ -102,8 +102,4 @@ export async function mergeGames(games: GameEntry[]): Promise<void> {
 
 export async function clearAllGames(): Promise<void> {
   await db.games.clear();
-}
-
-export async function countGames(): Promise<number> {
-  return db.games.count();
 }

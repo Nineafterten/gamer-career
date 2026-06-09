@@ -46,21 +46,21 @@ export const PRESETS: Record<string, PresetConfig> = {
   backlog: {
     key: 'backlog',
     label: 'Backlog',
-    description: 'Owned, waiting their turn. Longest-waiting first.',
+    description: 'Owned, waiting their turn — broken down by platform or genre.',
     chart: 'backlog',
     match: (g) => g.status === 'backlog',
   },
   in_play: {
     key: 'in_play',
     label: 'In Play',
-    description: 'Active and passive games — and how long they have been going.',
+    description: 'Active and passive games — broken down by platform or genre.',
     chart: 'inplay',
     match: (g) => g.status === 'active' || g.status === 'passive',
   },
   paused: {
     key: 'paused',
     label: 'Paused',
-    description: 'Started, but on hold for now — how long each has been parked.',
+    description: 'Started, but on hold for now — broken down by platform or genre.',
     chart: 'inplay',
     match: (g) => g.status === 'paused',
   },
@@ -88,7 +88,7 @@ export const PRESETS: Record<string, PresetConfig> = {
   abandoned: {
     key: 'abandoned',
     label: 'Abandoned',
-    description: 'What made you walk away, and how long you held on first.',
+    description: 'What made you walk away — your most common dislikes.',
     chart: 'abandoned',
     match: (g) => g.status === 'abandoned',
   },
@@ -102,7 +102,7 @@ export const PRESETS: Record<string, PresetConfig> = {
   wishlist: {
     key: 'wishlist',
     label: 'Wishlist',
-    description: 'Want to buy — how long each has been on the list.',
+    description: 'Want to buy — broken down by platform or genre.',
     chart: 'wishlist',
     match: (g) => g.status === 'wishlist',
   },

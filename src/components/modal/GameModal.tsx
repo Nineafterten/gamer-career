@@ -49,7 +49,7 @@ import {
   toPublicFields,
   type RawgSearchResult,
 } from '../../lib/rawg';
-import { playTimeLabel, toDisplayScore } from '../../lib/stats';
+import { toDisplayScore } from '../../lib/stats';
 import type { AppSettings, GameEntry } from '../../types/game';
 import { StatusBadge } from '../common/StatusBadge';
 import { useGameModal } from './useGameModal';
@@ -66,8 +66,6 @@ interface FormValues {
   series: string;
   coverImageUrl: string;
   status: GameEntry['status'];
-  startDate: string;
-  endDate: string;
   personalScore10: number; // 0-10 display scale (0 = unrated)
   likes: string[];
   dislikes: string[];
@@ -92,10 +90,6 @@ function gameToValues(game?: GameEntry): FormValues {
     series: game?.series ?? '',
     coverImageUrl: game?.coverImageUrl ?? '',
     status: game?.status ?? 'not_started',
-    startDate: game?.startDate ?? '',
-    // Only load an end date when a start exists — sanitizes any legacy
-    // "end without start" records so they don't open with a stale error.
-    endDate: game?.startDate ? (game?.endDate ?? '') : '',
     personalScore10:
       typeof game?.personalScore === 'number' ? game.personalScore / 10 : 0,
     likes: game?.likes ?? [],
@@ -123,8 +117,6 @@ function valuesToDraft(v: FormValues): GameDraft {
     coverImageUrl: v.coverImageUrl.trim() || undefined,
     rawgId: v.rawgId,
     status: v.status,
-    startDate: v.startDate || undefined,
-    endDate: v.endDate || undefined,
     personalScore: v.personalScore10 > 0 ? Math.round(v.personalScore10 * 10) : undefined,
     likes: v.likes,
     dislikes: v.dislikes,
@@ -243,9 +235,6 @@ function GameView({
         <Field label="Released" value={game.releaseDate} />
         <Field label="Series" value={game.series} />
         <Field label="Genres" value={game.genres.join(', ')} />
-        <Field label="Started" value={game.startDate} />
-        <Field label="Finished" value={game.endDate} />
-        <Field label="Play time" value={playTimeLabel(game.startDate, game.endDate)} />
         {parent && <Field label="Part of" value={parent.title} />}
       </SimpleGrid>
 
@@ -356,10 +345,6 @@ function GameForm({
     initialValues: gameToValues(game),
     validate: {
       title: (v) => (v.trim().length ? null : 'Title is required'),
-      endDate: (value, values) =>
-        value && values.startDate && value < values.startDate
-          ? 'End date is before the start date'
-          : null,
     },
   });
 
@@ -571,26 +556,6 @@ function GameForm({
               </Text>
             </Group>
           </div>
-        </SimpleGrid>
-        <SimpleGrid cols={{ base: 1, sm: 3 }}>
-          <TextInput
-            label="Start date"
-            type="date"
-            {...form.getInputProps('startDate')}
-          />
-          <TextInput
-            label="End date"
-            type="date"
-            min={form.values.startDate || undefined}
-            disabled={!form.values.startDate}
-            {...form.getInputProps('endDate')}
-          />
-          <TextInput
-            label="Total play time"
-            value={playTimeLabel(form.values.startDate, form.values.endDate)}
-            readOnly
-            disabled
-          />
         </SimpleGrid>
         <TagsInput
           label="Likes"

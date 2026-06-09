@@ -27,10 +27,10 @@ No GitHub required to deploy — local git is just version history.
 - **Layout:**
   - `src/types/game.ts` — `GameEntry`, `PlayStatus`, `StatusEvent`, `AppSettings`, `BackupFile`.
   - `src/data/` — `vocab.ts` (statuses/buckets/likes), `presets.ts` (view↔chart↔filter map +
-    `needsReview`), `seed.json` (23 starter games).
+    `needsReview`).
   - `src/db/` — `database.ts` (Dexie schema + settings), `repository.ts` (CRUD +
-    status-transition timestamping + date/sourceTitle logic), `seed.ts`, `hooks.ts` (useLiveQuery).
-  - `src/lib/` — `stats.ts` (KPIs, aging, histogram), `backup.ts`, `rawg.ts`, `bulkImport.ts`
+    status-transition timestamping + sourceTitle logic), `hooks.ts` (useLiveQuery).
+  - `src/lib/` — `stats.ts` (KPIs, repeats, histogram), `backup.ts`, `rawg.ts`, `bulkImport.ts`
     (parse/dedupe/canonTitle), `openxbl.ts` (Xbox client).
   - `src/routes/` — `Dashboard`, `GamesView`, `BulkImport`, `Settings`.
   - `src/components/` — `layout` (App shell), `kpi`, `cards`, `filters`, `modal`, `charts`, `common`.
@@ -39,8 +39,10 @@ No GitHub required to deploy — local git is just version history.
 ## Domain model
 - **PlayStatus** (9) in 3 buckets: Open (not_started/backlog/wishlist), Current
   (active/passive/paused), Closed (completed/done_with/abandoned). Bucket derived from `vocab.ts`.
-- Every status change is appended to `statusHistory` → powers the aging charts and
-  played-this-year. `startDate`/`endDate` are **manual** (no auto-fill — it caused bad states).
+- Every status change is appended to `statusHistory` → powers played-this-year. (Manual
+  start/end/duration fields were removed — impractical for a retroactively curated library.)
+- **Repeats** = distinct titles present both standalone and as a collection member (matched by
+  `canonTitle`); computed in `stats.ts` from the *unfiltered* library so excluded members count.
 - **Presets** are 1:1 per status (In Play = active+passive only; Paused, Completed, Done With
   separate). `needs_review` = completed/done_with missing a personal score.
 - **Collections:** `isCollection` / `collectionId` / `excludeFromStats` (e.g. Ezio Collection ⊃
@@ -56,7 +58,8 @@ No GitHub required to deploy — local git is just version history.
   platforms are intentionally ignored (they drift). `canonTitle` (number-words/roman→digits,
   drops `(year)`/punctuation) gates metadata auto-apply; loose matches are flagged, not applied.
 - **Charts:** themed tooltips via `HeroChart.module.css` + Recharts item/label styles; the
-  rating view has a Compare(scatter)/Distribution(histogram) toggle; hero card is `role="img"`.
+  Backlog/In Play/Paused/Wishlist views share a Platform/Genre breakdown toggle and the rating
+  view a Compare(scatter)/Distribution(histogram) toggle; hero card is `role="img"`.
 - **Perf:** routes are `React.lazy` + Suspense; `vite.config.ts` `manualChunks` splits
   react/mantine/recharts/dexie (Recharts only loads on games views).
 - **Tests:** Vitest; `src/test/setup.ts` polyfills (node Blob/File, fake-indexeddb, matchMedia,

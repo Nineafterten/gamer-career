@@ -63,27 +63,6 @@ describe('updateGame', () => {
   });
 });
 
-describe('play dates are manual (no auto-fill)', () => {
-  it('does not set dates from the status bucket on create', async () => {
-    const active = await createGame({ ...draft, status: 'active' });
-    expect(active.startDate).toBeUndefined();
-    const completed = await createGame({ ...draft, status: 'completed' });
-    expect(completed.endDate).toBeUndefined();
-  });
-
-  it('does not set dates when a status change occurs', async () => {
-    const g = await createGame(draft);
-    const moved = await updateGame(g.id, { status: 'active' });
-    expect(moved.startDate).toBeUndefined();
-  });
-
-  it('persists explicitly provided dates', async () => {
-    const g = await createGame({ ...draft, startDate: '2020-01-01', endDate: '2020-02-01' });
-    expect(g.startDate).toBe('2020-01-01');
-    expect(g.endDate).toBe('2020-02-01');
-  });
-});
-
 describe('deleteGame / replaceAllGames', () => {
   it('removes a single game', async () => {
     const game = await createGame(draft);

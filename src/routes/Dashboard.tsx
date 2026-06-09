@@ -1,15 +1,5 @@
 import { useMemo } from 'react';
-import {
-  Card,
-  Center,
-  Group,
-  Loader,
-  SimpleGrid,
-  Stack,
-  Text,
-  ThemeIcon,
-  Title,
-} from '@mantine/core';
+import { Center, Loader, SimpleGrid, Stack, Text, Title } from '@mantine/core';
 import {
   IconCircleCheck,
   IconClipboardList,
@@ -20,7 +10,7 @@ import {
   IconPercentage,
   IconPlayerPause,
   IconPlayerPlay,
-  IconPlus,
+  IconRepeat,
   IconScale,
   IconShoppingCart,
   IconSkull,
@@ -32,11 +22,9 @@ import {
 import { useGames } from '../db/hooks';
 import { computeKpis, toDisplayScore } from '../lib/stats';
 import { KpiCard } from '../components/kpi/KpiCard';
-import { useGameModal } from '../components/modal/useGameModal';
 
 export function Dashboard() {
   const games = useGames();
-  const modal = useGameModal();
 
   const kpis = useMemo(() => computeKpis(games ?? []), [games]);
   const seriesCount = useMemo(
@@ -151,6 +139,14 @@ export function Dashboard() {
           to="/games?group=series"
         />
         <KpiCard
+          label="Repeats"
+          value={kpis.repeats}
+          sub="Standalone + in a collection"
+          icon={<IconRepeat size={22} />}
+          color="grape"
+          to="/games?group=collection"
+        />
+        <KpiCard
           label="Abandoned"
           value={kpis.abandoned}
           sub="Walked away"
@@ -182,28 +178,6 @@ export function Dashboard() {
           color="orange"
           to="/games"
         />
-
-        <Card
-          withBorder
-          radius="md"
-          padding="lg"
-          onClick={modal.openCreate}
-          className="interactive-card"
-        >
-          <Group justify="space-between" align="flex-start" wrap="nowrap" h="100%">
-            <div>
-              <Text size="xs" c="dimmed" tt="uppercase" fw={600}>
-                New Entry
-              </Text>
-              <Text fw={700} fz="lg" mt={4}>
-                Add a game
-              </Text>
-            </div>
-            <ThemeIcon variant="filled" color="violet" size={42} radius="md">
-              <IconPlus size={22} />
-            </ThemeIcon>
-          </Group>
-        </Card>
       </SimpleGrid>
     </Stack>
   );

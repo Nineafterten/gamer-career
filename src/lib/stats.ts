@@ -1,32 +1,11 @@
 import { bucketOf } from '../data/vocab';
 import { needsReview } from '../data/presets';
+import { canonTitle } from './bulkImport';
 import type { Bucket, GameEntry, PlayStatus } from '../types/game';
-
-const MS_PER_DAY = 1000 * 60 * 60 * 24;
-
-export function daysBetween(fromIso: string, toIso?: string): number {
-  const from = new Date(fromIso).getTime();
-  const to = toIso ? new Date(toIso).getTime() : Date.now();
-  return Math.max(0, Math.round((to - from) / MS_PER_DAY));
-}
-
-/** The most recent transition INTO a given status. */
-export function lastEventInto(game: GameEntry, status: PlayStatus) {
-  for (let i = game.statusHistory.length - 1; i >= 0; i--) {
-    if (game.statusHistory[i].status === status) return game.statusHistory[i];
-  }
-  return undefined;
-}
 
 /** The earliest transition into any status within a bucket. */
 export function firstEventIntoBucket(game: GameEntry, bucket: Bucket) {
   return game.statusHistory.find((e) => e.bucket === bucket);
-}
-
-/** ISO timestamp the game (currently in backlog) entered the backlog. */
-export function backlogSince(game: GameEntry): string | undefined {
-  if (game.status !== 'backlog') return undefined;
-  return lastEventInto(game, 'backlog')?.at;
 }
 
 /** ISO timestamp the game first moved into a Current play state. */
@@ -35,42 +14,34 @@ export function inPlaySince(game: GameEntry): string | undefined {
   return firstEventIntoBucket(game, 'current')?.at;
 }
 
-export function wishlistSince(game: GameEntry): string | undefined {
-  if (game.status !== 'wishlist') return undefined;
-  return lastEventInto(game, 'wishlist')?.at;
-}
-
 export function closedAt(game: GameEntry): string | undefined {
   return firstEventIntoBucket(game, 'closed')?.at;
-}
-
-export function daysInBacklog(game: GameEntry): number | undefined {
-  const since = backlogSince(game);
-  return since ? daysBetween(since) : undefined;
-}
-
-export function daysInPlay(game: GameEntry): number | undefined {
-  const since = inPlaySince(game);
-  return since ? daysBetween(since) : undefined;
-}
-
-export function daysOnWishlist(game: GameEntry): number | undefined {
-  const since = wishlistSince(game);
-  return since ? daysBetween(since) : undefined;
-}
-
-/** For abandoned games: days from first play (or creation) to the abandon event. */
-export function daysHeldBeforeAbandon(game: GameEntry): number | undefined {
-  if (game.status !== 'abandoned') return undefined;
-  const abandonEvent = lastEventInto(game, 'abandoned');
-  if (!abandonEvent) return undefined;
-  const start = firstEventIntoBucket(game, 'current')?.at ?? game.createdAt;
-  return daysBetween(start, abandonEvent.at);
 }
 
 function avg(values: number[]): number | undefined {
   if (!values.length) return undefined;
   return values.reduce((a, b) => a + b, 0) / values.length;
+}
+
+/**
+ * Count distinct titles played both as a standalone entry and as a member of a
+ * collection (e.g. a game beaten on its own and again via a later remaster).
+ * The collection container itself isn't a played title, so it's skipped; member
+ * copies are usually flagged `excludeFromStats`, so this runs over the unfiltered
+ * library. Titles are normalized so "II" and "2" still match.
+ */
+export function repeatsCount(allGames: GameEntry[]): number {
+  const standalone = new Set<string>();
+  const members = new Set<string>();
+  for (const g of allGames) {
+    if (g.isCollection) continue;
+    const key = canonTitle(g.title);
+    if (g.collectionId) members.add(key);
+    else standalone.add(key);
+  }
+  let count = 0;
+  for (const key of standalone) if (members.has(key)) count += 1;
+  return count;
 }
 
 export interface Kpis {
@@ -86,6 +57,7 @@ export interface Kpis {
   closedPositive: number; // completed + doneWith
   needsReview: number; // positively-closed games missing a personal score
   favorites: number;
+  repeats: number; // titles played standalone AND via a collection
   avgPersonal?: number; // 0-100
   avgPublic?: number; // 0-100
   completionRate: number; // 0-1, closedPositive / total
@@ -122,6 +94,8 @@ export function computeKpis(allGames: GameEntry[]): Kpis {
     closedPositive,
     needsReview: games.filter(needsReview).length,
     favorites: games.filter((g) => g.favorite).length,
+    // Repeats span standalone + collection copies, so they read the full library.
+    repeats: repeatsCount(allGames),
     avgPersonal: avg(
       games
         .map((g) => g.personalScore)
@@ -163,18 +137,4 @@ export function scoreHistogram(games: GameEntry[]): ScoreBin[] {
     if (typeof g.publicScore === 'number') bins[idx(g.publicScore)].public += 1;
   }
   return bins;
-}
-
-/** Whole days between start and end play dates, if both are set. */
-export function playTimeDays(start?: string, end?: string): number | undefined {
-  if (!start || !end) return undefined;
-  return daysBetween(start, end);
-}
-
-/** Display for total play time: a day count, "TBD" (started, no end), or "—". */
-export function playTimeLabel(start?: string, end?: string): string {
-  if (!start) return '—';
-  if (!end) return 'TBD';
-  const d = daysBetween(start, end);
-  return `${d} day${d === 1 ? '' : 's'}`;
 }
