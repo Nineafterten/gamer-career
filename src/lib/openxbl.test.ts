@@ -23,6 +23,15 @@ describe('titleHistoryToRows', () => {
     expect(rows[2].platforms).toEqual(['Xbox Series X/S']); // fallback
   });
 
+  it('unwraps OpenXBL’s { content, code } envelope', () => {
+    const rows = titleHistoryToRows({
+      content: { titles: [{ name: 'Hades', devices: ['Scarlett'] }] },
+      code: 200,
+    });
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({ title: 'Hades', platforms: ['Xbox Series X/S'] });
+  });
+
   it('returns [] for an unexpected shape', () => {
     expect(titleHistoryToRows(null)).toEqual([]);
     expect(titleHistoryToRows({})).toEqual([]);

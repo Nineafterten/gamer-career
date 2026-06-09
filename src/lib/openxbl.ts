@@ -40,6 +40,8 @@ async function xbl<T = unknown>(path: string): Promise<T> {
 }
 
 interface AccountResponse {
+  // OpenXBL wraps successful responses in a `content` envelope.
+  content?: { profileUsers?: Array<{ id?: string }> };
   profileUsers?: Array<{ id?: string }>;
 }
 
@@ -51,7 +53,8 @@ export function getProfile(): Promise<AccountResponse> {
 /** Resolve the key owner's XUID (needed by the title-history endpoint). */
 async function getXuid(): Promise<string> {
   const data = await getProfile();
-  const xuid = data?.profileUsers?.[0]?.id;
+  const users = data?.content?.profileUsers ?? data?.profileUsers;
+  const xuid = users?.[0]?.id;
   if (!xuid) {
     throw new OpenXblError('Could not read your Xbox profile (no XUID returned).');
   }
@@ -90,7 +93,9 @@ function mapDevices(devices: unknown): string[] {
  * is only confirmable with a real key.
  */
 export function titleHistoryToRows(data: unknown): ParsedRow[] {
-  const root = data as Record<string, unknown> | undefined;
+  const outer = data as Record<string, unknown> | undefined;
+  // Unwrap OpenXBL's { content, code } envelope when present.
+  const root = ((outer?.content ?? outer) ?? {}) as Record<string, unknown>;
   const titles = (root?.titles ?? root?.titleHistory ?? []) as Array<
     Record<string, unknown>
   >;
