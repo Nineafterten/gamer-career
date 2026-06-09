@@ -126,13 +126,3 @@ src/
 
 React 18 · Vite · TypeScript · Mantine v7 (UI + theming) · Recharts (charts) ·
 Dexie (IndexedDB) · React Router v6.
-
-## Roadmap (not yet built)
-
-- **Xbox import** for gamertag history via [OpenXBL](https://xbl.io/). Deferred: OpenXBL
-  sends no `Access-Control-Allow-Origin`, so a static app can't call it directly — it needs
-  a small server-side proxy (a Netlify Function or the Mac Mini) holding the key. Once that
-  exists, a manual "Sync from Xbox" button (and later a 24h auto-sync) becomes possible.
-- Optional wishlist price signals — no public eShop/Xbox Marketplace price feed, so skipped.
-- Nintendo Switch has no public API, so Switch entries stay manual.
-- Cross-device sync would require a backend (the Mac Mini is well-suited).
