@@ -27,7 +27,16 @@ async function xbl<T = unknown>(path: string): Promise<T> {
   if (!res.ok) {
     throw new OpenXblError(`Xbox request failed (${res.status}).`);
   }
-  return (await res.json()) as T;
+  // On the local dev server the /api/xbox route falls through to the SPA's
+  // index.html, so guard against a non-JSON (HTML) body with a clear message.
+  const text = await res.text();
+  try {
+    return JSON.parse(text) as T;
+  } catch {
+    throw new OpenXblError(
+      'Xbox sync only runs on the deployed site (or via `netlify dev`), not the plain dev server.',
+    );
+  }
 }
 
 /** The key owner's own Xbox profile. */
