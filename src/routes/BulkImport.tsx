@@ -14,6 +14,7 @@ import {
   Text,
   Textarea,
   Title,
+  Tooltip,
   FileButton,
 } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
@@ -27,6 +28,7 @@ import {
 import { useGames, useSettings } from '../db/hooks';
 import { createGame, type GameDraft } from '../db/repository';
 import {
+  canonTitle,
   flagDuplicates,
   parseBulk,
   type DupKind,
@@ -51,6 +53,9 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 function rowToDraft(row: ParsedRow, patch?: PublicFieldsPatch): GameDraft {
   return {
     title: patch?.title ?? row.title,
+    // Preserve the original imported title for stable future dedupe, even if
+    // metadata enrichment rewrites the display title.
+    sourceTitle: row.title,
     publisher: patch?.publisher,
     releaseDate: patch?.releaseDate,
     platforms: row.platforms.length ? row.platforms : (patch?.platforms ?? []),
@@ -87,6 +92,8 @@ export function BulkImport() {
   const [dups, setDups] = useState<DupKind[]>([]);
   const [include, setInclude] = useState<boolean[]>([]);
   const [patches, setPatches] = useState<Record<number, PublicFieldsPatch>>({});
+  // index → the suspicious RAWG name when the top result wasn't a confident match.
+  const [looseMatches, setLooseMatches] = useState<Record<number, string>>({});
   const [parseErrors, setParseErrors] = useState<string[]>([]);
   const [fetching, setFetching] = useState(false);
   const [fetchProgress, setFetchProgress] = useState(0);
@@ -100,6 +107,7 @@ export function BulkImport() {
     setDups(flags);
     setInclude(flags.map((d) => d === null)); // duplicates start unchecked
     setPatches({});
+    setLooseMatches({});
     setParseErrors(errors);
   }
 
@@ -144,9 +152,16 @@ export function BulkImport() {
     for (const i of targets) {
       try {
         const results = await searchGames(rows[i].title, settings?.rawgApiKey);
-        if (results[0]) {
-          const detail = await getGameDetail(results[0].id, settings?.rawgApiKey);
-          setPatches((p) => ({ ...p, [i]: toPublicFields(detail) }));
+        const top = results[0];
+        if (top) {
+          if (canonTitle(rows[i].title) === canonTitle(top.name)) {
+            // Confident match — safe to auto-apply.
+            const detail = await getGameDetail(top.id, settings?.rawgApiKey);
+            setPatches((p) => ({ ...p, [i]: toPublicFields(detail) }));
+          } else {
+            // Too loose to trust — don't overwrite; flag for manual handling.
+            setLooseMatches((m) => ({ ...m, [i]: top.name }));
+          }
         }
       } catch (err) {
         notifications.show({ color: 'red', message: (err as Error).message });
@@ -319,6 +334,18 @@ export function BulkImport() {
                           <Badge color="gray" variant="light" size="sm">
                             status?
                           </Badge>
+                        )}
+                        {looseMatches[i] && (
+                          <Tooltip
+                            label={`RAWG's closest match was "${looseMatches[i]}" — too different to auto-apply. Edit this game and use “Fetch details” to pick the right one.`}
+                            multiline
+                            w={260}
+                            withArrow
+                          >
+                            <Badge color="yellow" variant="light" size="sm">
+                              check match
+                            </Badge>
+                          </Tooltip>
                         )}
                         {patches[i] && (
                           <Badge color="teal" variant="light" size="sm">

@@ -37,11 +37,34 @@ export interface ParseResult {
   errors: string[];
 }
 
-/** Stable key for duplicate detection: normalized title + sorted platforms. */
-export function dedupeKey(title: string, platforms: string[]): string {
-  const t = title.trim().toLowerCase().replace(/\s+/g, ' ');
-  const p = platforms.map((x) => x.trim().toLowerCase()).sort().join('|');
-  return `${t}@@${p}`;
+/** Normalize a title for matching (case- and whitespace-insensitive). */
+export function normalizeTitle(title: string): string {
+  return title.trim().toLowerCase().replace(/\s+/g, ' ');
+}
+
+const NUM_WORDS: Record<string, string> = {
+  one: '1', two: '2', three: '3', four: '4', five: '5',
+  six: '6', seven: '7', eight: '8', nine: '9', ten: '10',
+};
+const ROMAN: Record<string, string> = {
+  ii: '2', iii: '3', iv: '4', vi: '6', vii: '7', viii: '8', ix: '9',
+};
+
+/**
+ * Canonical form for confident-match comparison: lowercases, drops parentheticals
+ * like "(1987)", strips punctuation/®/™, and maps number-words + roman numerals to
+ * digits — so "Unravel Two" == "Unravel 2" but "Street Fighter 6" != "Street Fighter".
+ */
+export function canonTitle(title: string): string {
+  return title
+    .toLowerCase()
+    .replace(/\([^)]*\)/g, ' ')
+    .replace(/[^a-z0-9 ]/g, ' ')
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((w) => NUM_WORDS[w] ?? ROMAN[w] ?? w)
+    .join(' ')
+    .trim();
 }
 
 function parsePlatforms(value: string): string[] {
@@ -244,16 +267,26 @@ export function parseBulk(text: string): ParseResult {
 
 export type DupKind = 'library' | 'batch' | null;
 
-/** Flag each parsed row as duplicating an existing game or an earlier batch row. */
+/**
+ * Flag each parsed row as duplicating an existing game or an earlier batch row.
+ * Matches on normalized title against BOTH the current title and the original
+ * `sourceTitle`, so a record whose title was rewritten by metadata enrichment is
+ * still recognized on a later re-sync (platforms are intentionally ignored —
+ * they drift between a single manual entry and a multi-platform Xbox sync).
+ */
 export function flagDuplicates(
   rows: ParsedRow[],
   existing: GameEntry[],
 ): DupKind[] {
-  const libraryKeys = new Set(existing.map((g) => dedupeKey(g.title, g.platforms)));
+  const lib = new Set<string>();
+  for (const g of existing) {
+    lib.add(normalizeTitle(g.title));
+    lib.add(normalizeTitle(g.sourceTitle ?? g.title));
+  }
   const seen = new Set<string>();
   return rows.map((r) => {
-    const key = dedupeKey(r.title, r.platforms);
-    if (libraryKeys.has(key)) return 'library';
+    const key = normalizeTitle(r.title);
+    if (lib.has(key)) return 'library';
     if (seen.has(key)) return 'batch';
     seen.add(key);
     return null;

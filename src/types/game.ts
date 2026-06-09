@@ -40,6 +40,12 @@ export interface GameEntry {
   series?: string;
   coverImageUrl?: string;
   rawgId?: number;
+  /**
+   * The title as first imported/created, preserved even if `title` is later
+   * rewritten by metadata enrichment. Used for stable duplicate detection so a
+   * re-sync still matches a record whose display title has since changed.
+   */
+  sourceTitle?: string;
 
   // --- Personal information (provided by the user) ---
   status: PlayStatus;

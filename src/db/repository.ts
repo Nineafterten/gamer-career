@@ -45,6 +45,10 @@ export async function createGame(draft: GameDraft): Promise<GameEntry> {
     createdAt: now,
     updatedAt: now,
   };
+  // Snapshot the original title for stable duplicate detection (survives later
+  // metadata title rewrites).
+  if (!entry.sourceTitle) entry.sourceTitle = entry.title;
+
   await db.games.put(entry);
   return entry;
 }

@@ -1,7 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import {
-  dedupeKey,
+  canonTitle,
   flagDuplicates,
+  normalizeTitle,
   parseBulk,
   statusFromLabel,
 } from './bulkImport';
@@ -16,9 +17,19 @@ describe('statusFromLabel', () => {
   });
 });
 
-describe('dedupeKey', () => {
-  it('is stable across case and platform order', () => {
-    expect(dedupeKey('Hades', ['Xbox', 'PC'])).toBe(dedupeKey('  hades ', ['pc', 'xbox']));
+describe('normalizeTitle', () => {
+  it('is case- and whitespace-insensitive', () => {
+    expect(normalizeTitle('  Hollow   Knight ')).toBe(normalizeTitle('hollow knight'));
+  });
+});
+
+describe('canonTitle', () => {
+  it('equates number-words/roman numerals but keeps distinct sequels apart', () => {
+    expect(canonTitle('Unravel Two')).toBe(canonTitle('Unravel 2'));
+    expect(canonTitle('Final Fantasy VI')).toBe(canonTitle('Final Fantasy 6'));
+    expect(canonTitle('Halo: Infinite')).toBe(canonTitle('Halo Infinite'));
+    // The classic mismatch we want flagged, not auto-applied:
+    expect(canonTitle('Street Fighter 6')).not.toBe(canonTitle('Street Fighter (1987)'));
   });
 });
 
@@ -82,5 +93,18 @@ describe('flagDuplicates', () => {
     expect(flags[0]).toBe('library');
     expect(flags[1]).toBeNull();
     expect(flags[2]).toBe('batch');
+  });
+
+  it('matches a library record by its original sourceTitle after a title rewrite', () => {
+    // Enriched display title differs, but the original import title is preserved.
+    const existing = [makeGame({ title: 'Unravel 2', sourceTitle: 'Unravel Two' })];
+    const { rows } = parseBulk('Title,Platform\nUnravel Two,Xbox Series X/S');
+    expect(flagDuplicates(rows, existing)[0]).toBe('library');
+  });
+
+  it('ignores platform drift (single manual entry vs multi-platform sync)', () => {
+    const existing = [makeGame({ title: 'Hades', platforms: ['Xbox One'] })];
+    const { rows } = parseBulk('Title,Platform\nHades,PC;Xbox Series X/S');
+    expect(flagDuplicates(rows, existing)[0]).toBe('library');
   });
 });
