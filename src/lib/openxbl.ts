@@ -39,18 +39,32 @@ async function xbl<T = unknown>(path: string): Promise<T> {
   }
 }
 
+interface AccountResponse {
+  profileUsers?: Array<{ id?: string }>;
+}
+
 /** The key owner's own Xbox profile. */
-export function getProfile(): Promise<unknown> {
-  return xbl('/api/v2/account');
+export function getProfile(): Promise<AccountResponse> {
+  return xbl<AccountResponse>('/api/v2/account');
+}
+
+/** Resolve the key owner's XUID (needed by the title-history endpoint). */
+async function getXuid(): Promise<string> {
+  const data = await getProfile();
+  const xuid = data?.profileUsers?.[0]?.id;
+  if (!xuid) {
+    throw new OpenXblError('Could not read your Xbox profile (no XUID returned).');
+  }
+  return xuid;
 }
 
 /**
- * The key owner's title (game) history. NOTE: confirm this exact path against
- * your live OpenXBL key — the proxy is generic, so only this string may need a
- * tweak if OpenXBL names it differently.
+ * The key owner's title (game) history. Per the OpenXBL OpenAPI spec the path is
+ * /api/v2/player/titleHistory/{xuid}, so we resolve the XUID from the account first.
  */
-export function getTitleHistory(): Promise<unknown> {
-  return xbl('/api/v2/player/titleHistory');
+export async function getTitleHistory(): Promise<unknown> {
+  const xuid = await getXuid();
+  return xbl(`/api/v2/player/titleHistory/${xuid}`);
 }
 
 const DEVICE_PLATFORM: Record<string, string> = {
