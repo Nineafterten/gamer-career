@@ -173,8 +173,8 @@ export function Settings() {
           <Title order={4}>Xbox sync</Title>
         </Group>
         <Text size="sm" c="dimmed" mb="sm">
-          Pull your Xbox play history (gamertag <b>NineAfterTen</b>) into Bulk Add to review and
-          create. Runs through a small server proxy, so it works on the deployed site once
+          Pull your Xbox play history into Bulk Add to review and create. Runs through a small
+          server proxy, so it works on the deployed site once
           <Code>OPENXBL_KEY</Code> is set (see DEPLOY.md) — not on the local dev server.
         </Text>
         <Button

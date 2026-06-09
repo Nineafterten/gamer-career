@@ -7,8 +7,8 @@ is a one-time setup; after that, deploys are a single command.
 - Node 18+ and npm.
 - A free [Netlify](https://netlify.com) account.
 - (Optional, for autofill) a free [RAWG](https://rawg.io/apidocs) API key.
-- (Optional, for Xbox sync) a free [OpenXBL](https://xbl.io) key, authorized with the Xbox
-  account behind your gamertag (NineAfterTen).
+- (Optional, for Xbox sync) a free [OpenXBL](https://xbl.io) key, authorized with your Xbox
+  account.
 
 ## 1. First deploy — no GitHub required
 
@@ -21,7 +21,7 @@ npm run build            # sanity check it builds
 npm i -g netlify-cli     # if you don't have it
 netlify login            # opens the browser to authorize
 netlify deploy --build   # first run: choose "Create & configure a new site" → manual deploy,
-                         # name it (e.g. nineafterten). Gives a draft URL to smoke-test.
+                         # name it whatever you like. Gives a draft URL to smoke-test.
 netlify deploy --build --prod   # promote to production
 ```
 
