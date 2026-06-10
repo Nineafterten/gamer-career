@@ -48,7 +48,12 @@ statuses, scores, and favorites.
   | Favorites | Genre/series cluster (treemap) |
 - **Grid / List views** — toggle the games view between a card grid and a compact list
   (your choice persists).
-- **Grouping** — group the games view by None / Series / Genre / Collection, with section
+- **Bulk edit** — hit **Select**, tick records in either view (with a live selected count), then
+  edit the whole batch at once: Series, Publisher, Platforms, Genres, Play Status, Likes, Dislikes,
+  Noteworthy, Favorite, Exclude from stats, Part of collection, and Variant of. Tag fields support
+  **Add / Remove / Replace**; only the fields you switch on are written. The selection can also be
+  deleted in one go (confirm-gated).
+- **Grouping** — group the games view by None / Series / Genre / Collection / Original, with section
   headers and counts. A **Series** KPI deep-links to the series-grouped view.
 - **Collections** — model compilations (e.g. *The Ezio Collection* containing *AC II* +
   *Brotherhood*): mark an entry as a collection, link members to it, and flag members

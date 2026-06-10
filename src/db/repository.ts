@@ -1,5 +1,6 @@
 import { db } from './database';
 import { bucketOf } from '../data/vocab';
+import { computeBulkPatch, type BulkEditSpec } from '../lib/bulkEdit';
 import type { GameEntry, PlayStatus, StatusEvent } from '../types/game';
 
 export function nowIso(): string {
@@ -85,6 +86,47 @@ export async function updateGame(
 
 export async function deleteGame(id: string): Promise<void> {
   await db.games.delete(id);
+}
+
+/**
+ * Apply one {@link BulkEditSpec} to many records in a single transaction. A
+ * changed `status` appends a StatusEvent just like {@link updateGame}. Returns
+ * the number of records written.
+ */
+export async function applyBulkEdit(
+  ids: string[],
+  spec: BulkEditSpec,
+): Promise<number> {
+  if (!ids.length) return 0;
+  const now = nowIso();
+  let changed = 0;
+  await db.transaction('rw', db.games, async () => {
+    const current = await db.games.bulkGet(ids);
+    const updates: GameEntry[] = [];
+    for (const game of current) {
+      if (!game) continue;
+      const patch = computeBulkPatch(game, spec);
+      if (!Object.keys(patch).length) continue;
+      const statusChanged =
+        patch.status !== undefined && patch.status !== game.status;
+      updates.push({
+        ...game,
+        ...patch,
+        statusHistory: statusChanged
+          ? [...game.statusHistory, statusEvent(patch.status!, now)]
+          : game.statusHistory,
+        updatedAt: now,
+      });
+    }
+    if (updates.length) await db.games.bulkPut(updates);
+    changed = updates.length;
+  });
+  return changed;
+}
+
+/** Delete a set of records at once (used by the bulk selection bar). */
+export async function deleteGames(ids: string[]): Promise<void> {
+  if (ids.length) await db.games.bulkDelete(ids);
 }
 
 /** Replace the entire library (used by import / reset). */

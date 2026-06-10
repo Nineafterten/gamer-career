@@ -7,6 +7,7 @@ import {
   Center,
   Group,
   Loader,
+  Paper,
   SegmentedControl,
   Select,
   SimpleGrid,
@@ -16,14 +17,20 @@ import {
   VisuallyHidden,
 } from '@mantine/core';
 import { useLocalStorage } from '@mantine/hooks';
+import { modals } from '@mantine/modals';
+import { notifications } from '@mantine/notifications';
 import {
+  IconChecks,
   IconLayoutGrid,
   IconLayoutList,
   IconMoodEmpty,
+  IconPencil,
   IconPlus,
+  IconTrash,
 } from '@tabler/icons-react';
 
 import { useGames } from '../db/hooks';
+import { deleteGames } from '../db/repository';
 import { getPreset } from '../data/presets';
 import {
   DEFAULT_FILTERS,
@@ -34,8 +41,10 @@ import {
 import { GameCard } from '../components/cards/GameCard';
 import { GameListRow } from '../components/cards/GameListRow';
 import { HeroChart } from '../components/charts/HeroChart';
+import { BulkEditModal } from '../components/modal/BulkEditModal';
 import { useGameModal } from '../components/modal/useGameModal';
 import type { GameEntry } from '../types/game';
+import styles from './GamesView.module.css';
 
 type GroupBy = 'none' | 'series' | 'genre' | 'collection' | 'original';
 
@@ -156,9 +165,15 @@ export function GamesView() {
   });
   const [groupBy, setGroupBy] = useState<GroupBy>((groupParam as GroupBy) || 'none');
 
-  // Reset filters when the preset changes (e.g. navigating via a KPI).
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [bulkOpen, setBulkOpen] = useState(false);
+
+  // Reset filters and any selection when the preset changes (e.g. via a KPI).
   useEffect(() => {
     setFilters(initialFilters(presetKey));
+    setSelectionMode(false);
+    setSelected(new Set());
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [preset.key]);
 
@@ -210,15 +225,59 @@ export function GamesView() {
     );
   }
 
-  const renderGame = (g: GameEntry) =>
-    viewMode === 'grid' ? (
-      <GameCard key={g.id} game={g} onClick={() => modal.openView(g.id)} />
+  const toggleSelect = (id: string) =>
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  const exitSelection = () => {
+    setSelectionMode(false);
+    setSelected(new Set());
+  };
+  const selectAllVisible = () => setSelected(new Set(visible.map((g) => g.id)));
+
+  function confirmBulkDelete() {
+    const ids = [...selected];
+    modals.openConfirmModal({
+      title: `Delete ${ids.length} game${ids.length === 1 ? '' : 's'}?`,
+      centered: true,
+      children: (
+        <Text size="sm">
+          Permanently remove the selected records. This can't be undone (make sure you have
+          an export saved).
+        </Text>
+      ),
+      labels: { confirm: 'Delete', cancel: 'Cancel' },
+      confirmProps: { color: 'red' },
+      onConfirm: async () => {
+        await deleteGames(ids);
+        notifications.show({
+          color: 'red',
+          message: `Deleted ${ids.length} game${ids.length === 1 ? '' : 's'}.`,
+        });
+        exitSelection();
+      },
+    });
+  }
+
+  const renderGame = (g: GameEntry) => {
+    const props = {
+      game: g,
+      onClick: selectionMode ? () => toggleSelect(g.id) : () => modal.openView(g.id),
+      selectable: selectionMode,
+      selected: selected.has(g.id),
+    };
+    return viewMode === 'grid' ? (
+      <GameCard key={g.id} {...props} />
     ) : (
-      <GameListRow key={g.id} game={g} onClick={() => modal.openView(g.id)} />
+      <GameListRow key={g.id} {...props} />
     );
+  };
 
   return (
-    <Stack>
+    <Stack pb={selectionMode ? 72 : undefined}>
       <div>
         <Title order={2}>{preset.label}</Title>
         <Text c="dimmed">{preset.description}</Text>
@@ -247,6 +306,14 @@ export function GamesView() {
           {visible.length} of {candidates.length} games
         </Text>
         <Group gap="sm">
+          <Button
+            size="xs"
+            variant={selectionMode ? 'filled' : 'default'}
+            leftSection={<IconChecks size={16} />}
+            onClick={() => (selectionMode ? exitSelection() : setSelectionMode(true))}
+          >
+            {selectionMode ? 'Done' : 'Select'}
+          </Button>
           <Select
             size="xs"
             w={180}
@@ -327,6 +394,62 @@ export function GamesView() {
           ))}
         </Stack>
       )}
+
+      {selectionMode && (
+        <Paper
+          withBorder
+          radius="xl"
+          shadow="md"
+          p="xs"
+          px="md"
+          className={styles.selectionBar}
+        >
+          <Group gap="xs" wrap="nowrap">
+            <Text size="sm" fw={600} pr="xs">
+              {selected.size} selected
+            </Text>
+            <Button size="xs" variant="subtle" onClick={selectAllVisible}>
+              Select all ({visible.length})
+            </Button>
+            <Button
+              size="xs"
+              variant="subtle"
+              onClick={() => setSelected(new Set())}
+              disabled={!selected.size}
+            >
+              Clear
+            </Button>
+            <Button
+              size="xs"
+              leftSection={<IconPencil size={14} />}
+              disabled={!selected.size}
+              onClick={() => setBulkOpen(true)}
+            >
+              Bulk edit
+            </Button>
+            <Button
+              size="xs"
+              color="red"
+              variant="light"
+              leftSection={<IconTrash size={14} />}
+              disabled={!selected.size}
+              onClick={confirmBulkDelete}
+            >
+              Delete
+            </Button>
+          </Group>
+        </Paper>
+      )}
+
+      <BulkEditModal
+        opened={bulkOpen}
+        onClose={() => setBulkOpen(false)}
+        ids={[...selected]}
+        onApplied={() => {
+          setBulkOpen(false);
+          exitSelection();
+        }}
+      />
     </Stack>
   );
 }

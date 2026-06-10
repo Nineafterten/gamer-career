@@ -1,8 +1,10 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { db } from './database';
 import {
+  applyBulkEdit,
   createGame,
   deleteGame,
+  deleteGames,
   getAllGames,
   getGame,
   replaceAllGames,
@@ -77,5 +79,40 @@ describe('deleteGame / replaceAllGames', () => {
     await replaceAllGames([all[0]]);
     const after = await getAllGames();
     expect(after).toHaveLength(1);
+  });
+});
+
+describe('applyBulkEdit / deleteGames', () => {
+  it('merges tag fields across the selected records', async () => {
+    const a = await createGame({ ...draft, platforms: ['PC'] });
+    const b = await createGame({ ...draft, title: 'B', platforms: ['Switch'] });
+    const n = await applyBulkEdit([a.id, b.id], {
+      platforms: { mode: 'add', values: ['PS5'] },
+    });
+    expect(n).toBe(2);
+    expect((await getGame(a.id))!.platforms).toEqual(['PC', 'PS5']);
+    expect((await getGame(b.id))!.platforms).toEqual(['Switch', 'PS5']);
+  });
+
+  it('appends a StatusEvent only on a real status change', async () => {
+    const a = await createGame({ ...draft, status: 'backlog' });
+    await applyBulkEdit([a.id], { status: 'completed' });
+    const after = await getGame(a.id);
+    expect(after!.status).toBe('completed');
+    expect(after!.statusHistory).toHaveLength(2);
+    expect(after!.statusHistory[1]).toMatchObject({
+      status: 'completed',
+      bucket: 'closed',
+    });
+    // Re-applying the same status is a no-op for history.
+    await applyBulkEdit([a.id], { status: 'completed' });
+    expect((await getGame(a.id))!.statusHistory).toHaveLength(2);
+  });
+
+  it('deleteGames removes the whole set', async () => {
+    const a = await createGame(draft);
+    const b = await createGame({ ...draft, title: 'B' });
+    await deleteGames([a.id, b.id]);
+    expect(await getAllGames()).toHaveLength(0);
   });
 });

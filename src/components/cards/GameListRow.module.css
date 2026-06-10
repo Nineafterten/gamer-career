@@ -19,3 +19,8 @@
 .scoreCell {
   text-align: right;
 }
+
+.selected {
+  outline: 2px solid var(--mantine-primary-color-filled);
+  outline-offset: -2px;
+}

@@ -29,8 +29,10 @@ No GitHub required to deploy — local git is just version history.
   - `src/data/` — `vocab.ts` (statuses/buckets/likes), `presets.ts` (view↔chart↔filter map +
     `needsReview`).
   - `src/db/` — `database.ts` (Dexie schema + settings), `repository.ts` (CRUD +
-    status-transition timestamping + sourceTitle logic), `hooks.ts` (useLiveQuery).
-  - `src/lib/` — `stats.ts` (KPIs, repeats, histogram), `backup.ts`, `rawg.ts`, `bulkImport.ts`
+    status-transition timestamping + sourceTitle logic + `applyBulkEdit`/`deleteGames`),
+    `hooks.ts` (useLiveQuery).
+  - `src/lib/` — `stats.ts` (KPIs, repeats, histogram), `bulkEdit.ts` (pure `computeBulkPatch`/
+    `applyTagEdit` for multi-record edits), `backup.ts`, `rawg.ts`, `bulkImport.ts`
     (parse/dedupe/canonTitle), `openxbl.ts` (Xbox client).
   - `src/routes/` — `Dashboard`, `GamesView`, `BulkImport`, `Settings`.
   - `src/components/` — `layout` (App shell), `kpi`, `cards`, `filters`, `modal`, `charts`, `common`.
@@ -53,6 +55,9 @@ No GitHub required to deploy — local git is just version history.
   separate axis — same game, different edition — and can group via "Group by original".
 - **`sourceTitle`** = the original imported title, preserved across metadata rewrites — the
   stable key for duplicate detection.
+- **Bulk edit:** `GamesView` "Select" mode toggles checkboxes on cards/rows + a fixed selection
+  bar; `BulkEditModal` builds a `BulkEditSpec` (only switched-on fields) applied via
+  `applyBulkEdit`. Tag fields support add/remove/replace; status changes append a StatusEvent.
 
 ## Conventions & gotchas
 - **Styling:** Mantine components + per-component **CSS Modules** + `src/index.css`

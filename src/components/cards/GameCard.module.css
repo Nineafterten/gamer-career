@@ -5,3 +5,19 @@
   background: var(--gc-card-placeholder);
   color: white;
 }
+
+.card {
+  position: relative;
+}
+
+.selected {
+  outline: 2px solid var(--mantine-primary-color-filled);
+  outline-offset: -2px;
+}
+
+.checkbox {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  z-index: 2;
+}

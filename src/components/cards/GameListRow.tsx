@@ -1,11 +1,21 @@
-import { Badge, Group, Image, Paper, Text } from '@mantine/core';
+import { Badge, Checkbox, Group, Image, Paper, Text } from '@mantine/core';
 import { IconDeviceGamepad, IconHeartFilled } from '@tabler/icons-react';
 import { toDisplayScore } from '../../lib/stats';
 import type { GameEntry } from '../../types/game';
 import { StatusBadge } from '../common/StatusBadge';
 import styles from './GameListRow.module.css';
 
-export function GameListRow({ game, onClick }: { game: GameEntry; onClick: () => void }) {
+export function GameListRow({
+  game,
+  onClick,
+  selectable = false,
+  selected = false,
+}: {
+  game: GameEntry;
+  onClick: () => void;
+  selectable?: boolean;
+  selected?: boolean;
+}) {
   return (
     <Paper
       withBorder
@@ -14,6 +24,7 @@ export function GameListRow({ game, onClick }: { game: GameEntry; onClick: () =>
       role="button"
       tabIndex={0}
       aria-label={game.title}
+      aria-pressed={selectable ? selected : undefined}
       onClick={onClick}
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') {
@@ -21,9 +32,12 @@ export function GameListRow({ game, onClick }: { game: GameEntry; onClick: () =>
           onClick();
         }
       }}
-      className="interactive-card"
+      className={`interactive-card${selected ? ` ${styles.selected}` : ''}`}
     >
       <Group wrap="nowrap" gap="md">
+        {selectable && (
+          <Checkbox checked={selected} readOnly tabIndex={-1} aria-hidden />
+        )}
         <div className={styles.thumb}>
           {game.coverImageUrl ? (
             <Image src={game.coverImageUrl} w={44} h={44} alt={game.title} />

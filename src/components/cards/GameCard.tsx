@@ -1,11 +1,21 @@
-import { Badge, Card, Group, Image, Text, Box } from '@mantine/core';
+import { Badge, Card, Checkbox, Group, Image, Text, Box } from '@mantine/core';
 import { IconHeartFilled, IconDeviceGamepad } from '@tabler/icons-react';
 import { toDisplayScore } from '../../lib/stats';
 import type { GameEntry } from '../../types/game';
 import { StatusBadge } from '../common/StatusBadge';
 import styles from './GameCard.module.css';
 
-export function GameCard({ game, onClick }: { game: GameEntry; onClick: () => void }) {
+export function GameCard({
+  game,
+  onClick,
+  selectable = false,
+  selected = false,
+}: {
+  game: GameEntry;
+  onClick: () => void;
+  selectable?: boolean;
+  selected?: boolean;
+}) {
   return (
     <Card
       withBorder
@@ -15,13 +25,14 @@ export function GameCard({ game, onClick }: { game: GameEntry; onClick: () => vo
       role="button"
       tabIndex={0}
       aria-label={game.title}
+      aria-pressed={selectable ? selected : undefined}
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault();
           onClick();
         }
       }}
-      className="interactive-card"
+      className={`interactive-card ${styles.card}${selected ? ` ${styles.selected}` : ''}`}
     >
       <Card.Section>
         {game.coverImageUrl ? (
@@ -32,6 +43,17 @@ export function GameCard({ game, onClick }: { game: GameEntry; onClick: () => vo
           </Box>
         )}
       </Card.Section>
+      {/* Absolutely positioned, so it overlays the cover regardless of DOM order —
+          and keeping it AFTER Card.Section preserves the section's edge bleed. */}
+      {selectable && (
+        <Checkbox
+          checked={selected}
+          readOnly
+          tabIndex={-1}
+          aria-hidden
+          className={styles.checkbox}
+        />
+      )}
 
       <Group justify="space-between" mt="sm" gap="xs" wrap="nowrap">
         <Text fw={600} lineClamp={1} title={game.title}>
