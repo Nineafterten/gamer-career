@@ -56,13 +56,23 @@ export interface GameEntry {
   favorite: boolean;
   favoriteRank?: number; // ordering within the Favorites view
 
-  // --- Collections (compilations / remasters) ---
+  // --- Collections (compilations) ---
   /** True when this entry represents a collection of other entries. */
   isCollection?: boolean;
   /** Id of the collection entry this game is a member of (member → parent). */
   collectionId?: string;
   /** Omit from KPI counts/averages (e.g. members already covered by a collection). */
   excludeFromStats?: boolean;
+
+  // --- Variants (alternate editions of the SAME game) ---
+  /**
+   * Id of the canonical/original record this entry is a variant of — a remaster,
+   * port, HD re-release, or platform edition of the same game (e.g. a Bedrock
+   * record pointing at the original Minecraft). Distinct from collections, which
+   * bundle *different* games; the two can co-exist on one record. A variant is
+   * still real time spent, but the game's uniqueness belongs to the canonical.
+   */
+  variantOfId?: string;
 
   // --- Bookkeeping ---
   statusHistory: StatusEvent[];

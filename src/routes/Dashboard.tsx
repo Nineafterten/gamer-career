@@ -5,6 +5,7 @@ import {
   IconClipboardList,
   IconClock,
   IconDeviceGamepad2,
+  IconFingerprint,
   IconHeart,
   IconList,
   IconPercentage,
@@ -54,9 +55,18 @@ export function Dashboard() {
         <KpiCard
           label="Total Games"
           value={kpis.total}
+          sub="Every record"
           icon={<IconList size={22} />}
           color="violet"
           to="/games"
+        />
+        <KpiCard
+          label="Unique Games"
+          value={kpis.unique}
+          sub="Distinct, variants collapsed"
+          icon={<IconFingerprint size={22} />}
+          color="teal"
+          to="/games?group=original"
         />
         <KpiCard
           label="In Play"
@@ -109,7 +119,7 @@ export function Dashboard() {
         <KpiCard
           label="Needs Review"
           value={kpis.needsReview}
-          sub="Finished, no score yet"
+          sub="Missing score, art, or reason"
           icon={<IconClipboardList size={22} />}
           color="orange"
           to="/games?preset=needs_review"
@@ -141,10 +151,10 @@ export function Dashboard() {
         <KpiCard
           label="Repeats"
           value={kpis.repeats}
-          sub="Standalone + in a collection"
+          sub="Alternate versions / editions"
           icon={<IconRepeat size={22} />}
           color="grape"
-          to="/games?group=collection"
+          to="/games?group=original"
         />
         <KpiCard
           label="Abandoned"

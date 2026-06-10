@@ -11,12 +11,27 @@ export type ChartKind =
   | 'wishlist'
   | 'review';
 
-/** A positively-closed game (completed/done with) that has no personal score yet. */
-export function needsReview(g: GameEntry): boolean {
+/** A positively-closed game (completed/done with) with no personal score yet. */
+export function needsScore(g: GameEntry): boolean {
   return (
     (g.status === 'completed' || g.status === 'done_with') &&
     typeof g.personalScore !== 'number'
   );
+}
+
+/** Any record still missing cover art — a proxy for "not yet enriched / fetched". */
+export function needsArt(g: GameEntry): boolean {
+  return !g.coverImageUrl;
+}
+
+/** An abandoned game with no dislike tag recording why it was dropped. */
+export function needsAbandonReason(g: GameEntry): boolean {
+  return g.status === 'abandoned' && g.dislikes.length === 0;
+}
+
+/** A record that needs attention for any data-hygiene reason. */
+export function needsReview(g: GameEntry): boolean {
+  return needsScore(g) || needsArt(g) || needsAbandonReason(g);
 }
 
 export interface PresetConfig {
@@ -81,7 +96,7 @@ export const PRESETS: Record<string, PresetConfig> = {
   needs_review: {
     key: 'needs_review',
     label: 'Needs Review',
-    description: 'Finished games still missing a personal score — your cleanup list.',
+    description: 'Records to tidy up — missing a score, cover art, or an abandon reason.',
     chart: 'review',
     match: needsReview,
   },

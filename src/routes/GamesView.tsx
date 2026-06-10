@@ -37,13 +37,14 @@ import { HeroChart } from '../components/charts/HeroChart';
 import { useGameModal } from '../components/modal/useGameModal';
 import type { GameEntry } from '../types/game';
 
-type GroupBy = 'none' | 'series' | 'genre' | 'collection';
+type GroupBy = 'none' | 'series' | 'genre' | 'collection' | 'original';
 
 const GROUP_OPTIONS = [
   { value: 'none', label: 'No grouping' },
   { value: 'series', label: 'Group by series' },
   { value: 'genre', label: 'Group by genre' },
   { value: 'collection', label: 'Group by collection' },
+  { value: 'original', label: 'Group by original' },
 ];
 
 function initialFilters(presetKey: string | null): Filters {
@@ -95,6 +96,10 @@ function groupGames(
   if (groupBy === 'none') return [{ key: 'all', label: '', games: list }];
 
   const titleById = new Map(allGames.map((g) => [g.id, g.title]));
+  // Canonical records that have at least one variant pointing at them.
+  const canonicalsWithVariants = new Set(
+    allGames.filter((g) => g.variantOfId).map((g) => g.variantOfId),
+  );
   const keyOf = (g: GameEntry): { key: string; label: string } => {
     if (groupBy === 'series') {
       const s = g.series || 'No series';
@@ -103,6 +108,14 @@ function groupGames(
     if (groupBy === 'genre') {
       const s = g.genres[0] || 'Unspecified';
       return { key: s, label: s };
+    }
+    if (groupBy === 'original') {
+      // Variants cluster under their canonical; a canonical with variants is its
+      // own group; everything else lumps into Standalone.
+      if (g.variantOfId)
+        return { key: g.variantOfId, label: titleById.get(g.variantOfId) ?? 'Original' };
+      if (canonicalsWithVariants.has(g.id)) return { key: g.id, label: g.title };
+      return { key: '__standalone', label: 'Standalone' };
     }
     // collection
     if (g.isCollection) return { key: g.id, label: g.title };
@@ -296,6 +309,11 @@ export function GamesView() {
                   <Badge variant="light" color="gray">
                     {group.games.length}
                   </Badge>
+                  {groupBy === 'original' && group.games.some((g) => g.variantOfId) && (
+                    <Badge variant="light" color="grape">
+                      +{group.games.filter((g) => g.variantOfId).length} repeats
+                    </Badge>
+                  )}
                 </Group>
               )}
               {viewMode === 'grid' ? (

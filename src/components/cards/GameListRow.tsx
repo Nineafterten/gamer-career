@@ -1,4 +1,4 @@
-import { Group, Image, Paper, Text } from '@mantine/core';
+import { Badge, Group, Image, Paper, Text } from '@mantine/core';
 import { IconDeviceGamepad, IconHeartFilled } from '@tabler/icons-react';
 import { toDisplayScore } from '../../lib/stats';
 import type { GameEntry } from '../../types/game';
@@ -47,6 +47,11 @@ export function GameListRow({ game, onClick }: { game: GameEntry; onClick: () =>
         </div>
 
         <StatusBadge status={game.status} />
+        {game.variantOfId && (
+          <Badge color="grape" variant="light" size="sm" visibleFrom="sm">
+            Variant
+          </Badge>
+        )}
 
         <Group gap="lg" wrap="nowrap" visibleFrom="sm">
           <ScoreCell label="Mine" value={toDisplayScore(game.personalScore)} />

@@ -1,6 +1,5 @@
 import { bucketOf } from '../data/vocab';
 import { needsReview } from '../data/presets';
-import { canonTitle } from './bulkImport';
 import type { Bucket, GameEntry, PlayStatus } from '../types/game';
 
 /** The earliest transition into any status within a bucket. */
@@ -23,29 +22,9 @@ function avg(values: number[]): number | undefined {
   return values.reduce((a, b) => a + b, 0) / values.length;
 }
 
-/**
- * Count distinct titles played both as a standalone entry and as a member of a
- * collection (e.g. a game beaten on its own and again via a later remaster).
- * The collection container itself isn't a played title, so it's skipped; member
- * copies are usually flagged `excludeFromStats`, so this runs over the unfiltered
- * library. Titles are normalized so "II" and "2" still match.
- */
-export function repeatsCount(allGames: GameEntry[]): number {
-  const standalone = new Set<string>();
-  const members = new Set<string>();
-  for (const g of allGames) {
-    if (g.isCollection) continue;
-    const key = canonTitle(g.title);
-    if (g.collectionId) members.add(key);
-    else standalone.add(key);
-  }
-  let count = 0;
-  for (const key of standalone) if (members.has(key)) count += 1;
-  return count;
-}
-
 export interface Kpis {
   total: number;
+  unique: number; // distinct games (variant editions collapsed onto their canonical)
   notStarted: number;
   backlog: number;
   inPlay: number; // active + passive
@@ -55,9 +34,9 @@ export interface Kpis {
   doneWith: number;
   abandoned: number;
   closedPositive: number; // completed + doneWith
-  needsReview: number; // positively-closed games missing a personal score
+  needsReview: number; // records missing a score, cover art, or an abandon reason
   favorites: number;
-  repeats: number; // titles played standalone AND via a collection
+  repeats: number; // variant/edition records linked to a canonical original
   avgPersonal?: number; // 0-100
   avgPublic?: number; // 0-100
   completionRate: number; // 0-1, closedPositive / total
@@ -75,6 +54,9 @@ export function computeKpis(allGames: GameEntry[]): Kpis {
   const doneWith = byStatus('done_with');
   const closedPositive = completed + doneWith;
   const total = games.length;
+  // Each variant edition is real time spent (counted in `total`), but it's not a
+  // distinct game — so `unique` collapses variants onto their canonical original.
+  const variants = games.filter((g) => g.variantOfId).length;
 
   const playedThisYear = games.filter((g) => {
     const since = inPlaySince(g) ?? closedAt(g);
@@ -83,6 +65,7 @@ export function computeKpis(allGames: GameEntry[]): Kpis {
 
   return {
     total,
+    unique: total - variants,
     notStarted: byStatus('not_started'),
     backlog: byStatus('backlog'),
     inPlay: byStatus('active') + byStatus('passive'),
@@ -94,8 +77,7 @@ export function computeKpis(allGames: GameEntry[]): Kpis {
     closedPositive,
     needsReview: games.filter(needsReview).length,
     favorites: games.filter((g) => g.favorite).length,
-    // Repeats span standalone + collection copies, so they read the full library.
-    repeats: repeatsCount(allGames),
+    repeats: variants,
     avgPersonal: avg(
       games
         .map((g) => g.personalScore)

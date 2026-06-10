@@ -1,11 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import {
-  computeKpis,
-  inPlaySince,
-  repeatsCount,
-  scoreHistogram,
-  toDisplayScore,
-} from './stats';
+import { computeKpis, inPlaySince, scoreHistogram, toDisplayScore } from './stats';
 import { makeGame, daysAgo } from '../test/utils';
 import { bucketOf } from '../data/vocab';
 import type { StatusEvent } from '../types/game';
@@ -57,43 +51,22 @@ describe('inPlaySince', () => {
   });
 });
 
-describe('repeatsCount', () => {
-  it('counts titles present both standalone and as a collection member', () => {
-    const games = [
-      makeGame({ title: 'Assassin’s Creed II' }), // standalone
-      makeGame({ title: 'Assassin’s Creed II', collectionId: 'ezio', excludeFromStats: true }), // member
-      makeGame({ id: 'ezio', title: 'The Ezio Collection', isCollection: true }), // container — skipped
-      makeGame({ title: 'Halo' }), // standalone only
-    ];
-    expect(repeatsCount(games)).toBe(1);
-  });
-
-  it('matches across number-word/roman differences and is 0 with no overlap', () => {
-    const repeated = [
-      makeGame({ title: 'Final Fantasy VII' }), // standalone
-      makeGame({ title: 'Final Fantasy 7', collectionId: 'c' }), // member, same canon title
-    ];
-    expect(repeatsCount(repeated)).toBe(1);
-
-    const distinct = [
-      makeGame({ title: 'Halo' }),
-      makeGame({ title: 'Doom', collectionId: 'c' }),
-    ];
-    expect(repeatsCount(distinct)).toBe(0);
-  });
-});
-
 describe('computeKpis', () => {
+  const art = 'https://example.com/cover.jpg';
+
   it('aggregates counts, averages, and completion rate', () => {
+    // All have cover art, so needsReview isolates score/abandon-reason gaps.
     const games = [
-      makeGame({ status: 'completed', favorite: true, personalScore: 90, publicScore: 80 }),
-      makeGame({ status: 'done_with', publicScore: 70 }),
-      makeGame({ status: 'backlog' }),
-      makeGame({ status: 'active' }),
-      makeGame({ status: 'abandoned' }),
+      makeGame({ status: 'completed', favorite: true, personalScore: 90, publicScore: 80, coverImageUrl: art }),
+      makeGame({ status: 'done_with', publicScore: 70, coverImageUrl: art }), // no score → review
+      makeGame({ status: 'backlog', coverImageUrl: art }),
+      makeGame({ status: 'active', coverImageUrl: art }),
+      makeGame({ status: 'abandoned', coverImageUrl: art }), // no dislikes → review
     ];
     const k = computeKpis(games);
     expect(k.total).toBe(5);
+    expect(k.unique).toBe(5); // no variants
+    expect(k.repeats).toBe(0);
     expect(k.completed).toBe(1);
     expect(k.doneWith).toBe(1);
     expect(k.closedPositive).toBe(2);
@@ -101,12 +74,25 @@ describe('computeKpis', () => {
     expect(k.inPlay).toBe(1); // active + passive
     expect(k.paused).toBe(0);
     expect(k.abandoned).toBe(1);
-    expect(k.needsReview).toBe(1); // the done_with game has no personal score
+    expect(k.needsReview).toBe(2); // done_with (no score) + abandoned (no reason)
     expect(k.favorites).toBe(1);
-    expect(k.repeats).toBe(0);
     expect(k.avgPersonal).toBe(90);
     expect(k.avgPublic).toBe(75);
     expect(k.completionRate).toBeCloseTo(2 / 5);
+  });
+
+  it('splits unique vs repeats from variant links', () => {
+    const canonical = makeGame({ title: 'Minecraft', coverImageUrl: art });
+    const games = [
+      canonical,
+      makeGame({ title: 'Minecraft: Bedrock', variantOfId: canonical.id, coverImageUrl: art }),
+      makeGame({ title: 'Minecraft: Console', variantOfId: canonical.id, coverImageUrl: art }),
+      makeGame({ title: 'Halo', coverImageUrl: art }),
+    ];
+    const k = computeKpis(games);
+    expect(k.total).toBe(4); // every record is real time spent
+    expect(k.repeats).toBe(2); // two variant editions
+    expect(k.unique).toBe(2); // Minecraft (canonical) + Halo
   });
 
   it('excludes entries flagged excludeFromStats (collection members)', () => {
@@ -126,18 +112,4 @@ describe('computeKpis', () => {
     expect(k.avgPersonal).toBe(80);
   });
 
-  it('counts repeats from the full library, even excludeFromStats members', () => {
-    const games = [
-      makeGame({ title: 'Assassin’s Creed II', status: 'completed' }),
-      makeGame({
-        title: 'Assassin’s Creed II',
-        status: 'completed',
-        collectionId: 'ezio',
-        excludeFromStats: true,
-      }),
-    ];
-    const k = computeKpis(games);
-    expect(k.total).toBe(1); // the excluded member doesn't inflate the total
-    expect(k.repeats).toBe(1); // …but it still registers as a repeat
-  });
 });

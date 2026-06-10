@@ -41,12 +41,16 @@ No GitHub required to deploy — local git is just version history.
   (active/passive/paused), Closed (completed/done_with/abandoned). Bucket derived from `vocab.ts`.
 - Every status change is appended to `statusHistory` → powers played-this-year. (Manual
   start/end/duration fields were removed — impractical for a retroactively curated library.)
-- **Repeats** = distinct titles present both standalone and as a collection member (matched by
-  `canonTitle`); computed in `stats.ts` from the *unfiltered* library so excluded members count.
+- **Variants** = alternate editions of the SAME game (remaster/port/HD). A record points at its
+  canonical original via `variantOfId` (distinct from collections, which bundle *different* games;
+  the two can co-exist). `repeats` KPI = count of variant records; `unique` KPI = total − variants.
 - **Presets** are 1:1 per status (In Play = active+passive only; Paused, Completed, Done With
-  separate). `needs_review` = completed/done_with missing a personal score.
+  separate). `needs_review` = a data-hygiene union: missing personal score (finished games),
+  missing cover art (any record), or an abandoned game with no dislike reason. `ReviewChart`
+  breaks the count down per reason (`needsScore`/`needsArt`/`needsAbandonReason` in `presets.ts`).
 - **Collections:** `isCollection` / `collectionId` / `excludeFromStats` (e.g. Ezio Collection ⊃
-  AC2/Brotherhood; excluded members don't double-count in KPIs).
+  AC2/Brotherhood; excluded members don't double-count in KPIs). Variants (`variantOfId`) are a
+  separate axis — same game, different edition — and can group via "Group by original".
 - **`sourceTitle`** = the original imported title, preserved across metadata rewrites — the
   stable key for duplicate detection.
 

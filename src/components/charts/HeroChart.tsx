@@ -17,7 +17,12 @@ import {
   ZAxis,
 } from 'recharts';
 
-import type { ChartKind } from '../../data/presets';
+import {
+  needsAbandonReason,
+  needsArt,
+  needsScore,
+  type ChartKind,
+} from '../../data/presets';
 import { bucketOf } from '../../data/vocab';
 import { scoreHistogram } from '../../lib/stats';
 import type { GameEntry } from '../../types/game';
@@ -342,19 +347,22 @@ function RatingView({ games }: { games: GameEntry[] }) {
 }
 
 /* --------------------------- Needs review --------------------------- */
+// `games` are the records matching the needs_review preset (any hygiene reason).
+// The callout breaks them down per reason; a record can count under more than one.
 function ReviewChart({ games }: { games: GameEntry[] }) {
-  const completed = games.filter((g) => g.status === 'completed').length;
-  const doneWith = games.filter((g) => g.status === 'done_with').length;
+  const noScore = games.filter(needsScore).length;
+  const noArt = games.filter(needsArt).length;
+  const noReason = games.filter(needsAbandonReason).length;
 
   if (!games.length)
-    return <Empty message="All caught up — every finished game has a personal score." />;
+    return <Empty message="All caught up — nothing needs a score, cover art, or a reason." />;
 
   return (
     <Center h={HEIGHT}>
       <Group gap={56}>
-        <ReviewStat value={games.length} label="Need a score" />
-        <ReviewStat value={completed} label="Completed" />
-        <ReviewStat value={doneWith} label="Done With" />
+        <ReviewStat value={noScore} label="No score" />
+        <ReviewStat value={noArt} label="No cover art" />
+        <ReviewStat value={noReason} label="No abandon reason" />
       </Group>
     </Center>
   );

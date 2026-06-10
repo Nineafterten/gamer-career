@@ -42,6 +42,11 @@ export function GameCard({ game, onClick }: { game: GameEntry; onClick: () => vo
 
       <Group gap={6} mt={6}>
         <StatusBadge status={game.status} />
+        {game.variantOfId && (
+          <Badge color="grape" variant="light" size="sm">
+            Variant
+          </Badge>
+        )}
         {game.platforms.slice(0, 2).map((p) => (
           <Badge key={p} variant="outline" color="gray" size="sm">
             {p}

@@ -34,9 +34,9 @@ statuses, scores, and favorites.
 
 ## Features
 
-- **Landing dashboard** — KPI cards (total, in play, backlog, completed, favorites, wishlist,
-  repeats, abandoned, average score, completion rate, played this year). Each card deep-links
-  into the games view with the matching filter + visualization.
+- **Landing dashboard** — KPI cards (total, unique, in play, backlog, completed, favorites,
+  wishlist, repeats, abandoned, average score, completion rate, played this year). Each card
+  deep-links into the games view with the matching filter + visualization.
 - **Primary games view** — a hero visualization over a filterable/sortable card grid.
   The hero chart changes per view:
   | View | Visualization |
@@ -50,9 +50,13 @@ statuses, scores, and favorites.
   (your choice persists).
 - **Grouping** — group the games view by None / Series / Genre / Collection, with section
   headers and counts. A **Series** KPI deep-links to the series-grouped view.
-- **Collections** — model compilations/remasters (e.g. *The Ezio Collection* containing
-  *AC II* + *Brotherhood*): mark an entry as a collection, link members to it, and flag
-  members **excluded from stats** so they don't double-count.
+- **Collections** — model compilations (e.g. *The Ezio Collection* containing *AC II* +
+  *Brotherhood*): mark an entry as a collection, link members to it, and flag members
+  **excluded from stats** so they don't double-count.
+- **Variants / versions** — link a record to the original game it's a remaster/port/edition of
+  (e.g. *Minecraft* across platforms). Each playthrough still counts, but variants collapse onto
+  the original for the **Unique** count and surface as **Repeats** — "Group by original" clusters
+  them ("Minecraft + 4 repeats").
 - **Bulk Add** — paste or upload a CSV/JSON list (`Title, Platform, Play Status`, plus
   optional `Favorite, Score, Series`); review a staging table with **duplicate flagging**
   (against your library and within the batch), optionally fetch metadata, then create.

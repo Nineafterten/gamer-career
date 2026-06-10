@@ -20,7 +20,6 @@ import {
   Text,
   Textarea,
   TextInput,
-  Title,
 } from '@mantine/core';
 import { useForm } from '@mantine/form';
 import { modals } from '@mantine/modals';
@@ -75,6 +74,7 @@ interface FormValues {
   isCollection: boolean;
   collectionId: string | null;
   excludeFromStats: boolean;
+  variantOfId: string | null;
   rawgId?: number;
 }
 
@@ -100,6 +100,7 @@ function gameToValues(game?: GameEntry): FormValues {
     isCollection: game?.isCollection ?? false,
     collectionId: game?.collectionId ?? null,
     excludeFromStats: game?.excludeFromStats ?? false,
+    variantOfId: game?.variantOfId ?? null,
     rawgId: game?.rawgId,
   };
 }
@@ -128,6 +129,7 @@ function valuesToDraft(v: FormValues): GameDraft {
     // A collection can't also be a member of another collection.
     collectionId: v.isCollection ? undefined : (v.collectionId ?? undefined),
     excludeFromStats: v.excludeFromStats || undefined,
+    variantOfId: v.variantOfId ?? undefined,
   };
 }
 
@@ -168,6 +170,10 @@ function GameView({
   const parent = game.collectionId
     ? allGames.find((g) => g.id === game.collectionId)
     : undefined;
+  const original = game.variantOfId
+    ? allGames.find((g) => g.id === game.variantOfId)
+    : undefined;
+  const variantCount = allGames.filter((g) => g.variantOfId === game.id).length;
   return (
     <Stack>
       <Group align="flex-start" wrap="nowrap">
@@ -196,6 +202,16 @@ function GameView({
             {game.excludeFromStats && (
               <Badge color="gray" variant="outline">
                 Excluded from stats
+              </Badge>
+            )}
+            {game.variantOfId && (
+              <Badge color="grape" variant="filled">
+                Variant
+              </Badge>
+            )}
+            {variantCount > 0 && (
+              <Badge color="grape" variant="light">
+                +{variantCount} version{variantCount === 1 ? '' : 's'}
               </Badge>
             )}
           </Group>
@@ -236,6 +252,10 @@ function GameView({
         <Field label="Series" value={game.series} />
         <Field label="Genres" value={game.genres.join(', ')} />
         {parent && <Field label="Part of" value={parent.title} />}
+        {original && <Field label="Variant of" value={original.title} />}
+        {variantCount > 0 && (
+          <Field label="Other versions" value={String(variantCount)} />
+        )}
       </SimpleGrid>
 
       {(game.likes.length > 0 || game.dislikes.length > 0) && (
@@ -357,6 +377,11 @@ function GameForm({
   const allGames = useGames() ?? [];
   const collectionOptions = allGames
     .filter((g) => g.isCollection && g.id !== game?.id)
+    .map((g) => ({ value: g.id, label: g.title }));
+  // A variant points at a canonical original: exclude self, other variants
+  // (keep it one level deep), and collection containers.
+  const variantOptions = allGames
+    .filter((g) => g.id !== game?.id && !g.variantOfId && !g.isCollection)
     .map((g) => ({ value: g.id, label: g.title }));
 
   async function runSearch() {
@@ -593,7 +618,7 @@ function GameForm({
           )}
         </Group>
 
-        <Divider label="Collection" labelPosition="left" mt="sm" />
+        <Divider label="Collections & versions" labelPosition="left" mt="sm" />
         <Group>
           <Switch
             label="This entry is a collection"
@@ -609,10 +634,21 @@ function GameForm({
         <Select
           label="Part of collection"
           placeholder="Standalone"
-          description="Link this to a compilation/remaster it belongs to (e.g. The Ezio Collection)."
+          description="Link this to a compilation it belongs to (e.g. The Ezio Collection)."
           data={collectionOptions}
           value={form.values.collectionId}
           onChange={(v) => form.setFieldValue('collectionId', v)}
+          clearable
+          searchable
+          disabled={form.values.isCollection}
+        />
+        <Select
+          label="Variant of (original game)"
+          placeholder="Not a variant"
+          description="Mark this as another edition of one game — remaster, port, or HD re-release (e.g. a Minecraft version). It counts as a repeat, not a new unique game."
+          data={variantOptions}
+          value={form.values.variantOfId}
+          onChange={(v) => form.setFieldValue('variantOfId', v)}
           clearable
           searchable
           disabled={form.values.isCollection}
@@ -672,7 +708,11 @@ export function GameModal() {
       opened={isOpen}
       onClose={close}
       size="lg"
-      title={<Title order={4}>{title}</Title>}
+      title={
+        <Text span fw={700} fz="var(--mantine-h4-font-size)">
+          {title}
+        </Text>
+      }
       scrollAreaComponent={ScrollArea.Autosize}
     >
       {loading || !settings ? (
