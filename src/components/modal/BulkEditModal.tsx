@@ -117,6 +117,7 @@ export function BulkEditModal({
   const [status, setStatus] = useState<PlayStatus>('not_started');
   const [favorite, setFavorite] = useState(true);
   const [excludeFromStats, setExcludeFromStats] = useState(true);
+  const [hidden, setHidden] = useState(true);
   const [collectionId, setCollectionId] = useState<string | null>(null);
   const [variantOfId, setVariantOfId] = useState<string | null>(null);
   const [platforms, setPlatforms] = useState<TagEdit>(NO_TAGS);
@@ -134,6 +135,7 @@ export function BulkEditModal({
       setStatus('not_started');
       setFavorite(true);
       setExcludeFromStats(true);
+      setHidden(true);
       setCollectionId(null);
       setVariantOfId(null);
       setPlatforms(NO_TAGS);
@@ -166,6 +168,7 @@ export function BulkEditModal({
     if (on('status')) spec.status = status;
     if (on('favorite')) spec.favorite = favorite;
     if (on('excludeFromStats')) spec.excludeFromStats = excludeFromStats;
+    if (on('hidden')) spec.hidden = hidden;
     if (on('collectionId')) spec.collectionId = collectionId;
     if (on('variantOfId')) spec.variantOfId = variantOfId;
     if (on('platforms')) spec.platforms = platforms;
@@ -330,6 +333,9 @@ export function BulkEditModal({
           onToggle={() => toggle('excludeFromStats')}
         >
           {yesNo(excludeFromStats, setExcludeFromStats, !on('excludeFromStats'))}
+        </FieldRow>
+        <FieldRow label="Hidden" enabled={on('hidden')} onToggle={() => toggle('hidden')}>
+          {yesNo(hidden, setHidden, !on('hidden'))}
         </FieldRow>
 
         <Divider label="Collections & versions" labelPosition="left" mt="sm" />

@@ -1,6 +1,8 @@
 // Thin client for the RAWG video game database API (https://rawg.io/apidocs).
 // Called directly from the browser with the user's free API key.
 
+import { wikipediaSearchUrl } from './wikipedia';
+
 const BASE = 'https://api.rawg.io/api';
 
 export interface RawgSearchResult {
@@ -98,11 +100,11 @@ function normalizePlatform(name: string): string {
   return PLATFORM_ALIASES[name] ?? name;
 }
 
+// Only trust RAWG's Metacritic critic score. The community `rating` is sparse and
+// skews low for older/obscure games (e.g. it would rate Mega Man X a "55"), so we
+// leave the public score blank when there's no Metacritic value for the user to set.
 function scoreFrom(detail: RawgSearchResult): number | undefined {
-  if (typeof detail.metacritic === 'number') return detail.metacritic;
-  if (typeof detail.rating === 'number' && detail.rating > 0)
-    return Math.round(detail.rating * 20);
-  return undefined;
+  return typeof detail.metacritic === 'number' ? detail.metacritic : undefined;
 }
 
 export function toPublicFields(detail: RawgDetail): PublicFieldsPatch {
@@ -116,11 +118,9 @@ export function toPublicFields(detail: RawgDetail): PublicFieldsPatch {
     publicScore: scoreFrom(detail),
     genres: (detail.genres ?? []).map((g) => g.name),
     coverImageUrl: detail.background_image ?? undefined,
-    wikiUrl:
-      detail.website ||
-      `https://en.wikipedia.org/wiki/Special:Search?search=${encodeURIComponent(
-        detail.name + ' video game',
-      )}`,
+    // Default to a Wikipedia link (the apply flow upgrades this to the resolved
+    // article via resolveWikipediaUrl). RAWG's `website` is usually a store page.
+    wikiUrl: wikipediaSearchUrl(detail.name),
     rawgId: detail.id,
   };
 }

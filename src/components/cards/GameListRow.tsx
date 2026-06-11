@@ -66,6 +66,11 @@ export function GameListRow({
             Variant
           </Badge>
         )}
+        {game.hidden && (
+          <Badge color="dark" variant="light" size="sm" visibleFrom="sm">
+            Hidden
+          </Badge>
+        )}
 
         <Group gap="lg" wrap="nowrap" visibleFrom="sm">
           <ScoreCell label="Mine" value={toDisplayScore(game.personalScore)} />

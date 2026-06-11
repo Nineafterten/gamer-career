@@ -44,9 +44,9 @@ export interface Kpis {
 }
 
 export function computeKpis(allGames: GameEntry[]): Kpis {
-  // Entries explicitly excluded (e.g. games covered by a collection) don't
-  // count toward totals/averages so compilations aren't double-counted.
-  const games = allGames.filter((g) => !g.excludeFromStats);
+  // Hidden records and entries explicitly excluded (e.g. games covered by a
+  // collection) don't count toward totals/averages.
+  const games = allGames.filter((g) => !g.excludeFromStats && !g.hidden);
   const byStatus = (s: PlayStatus) => games.filter((g) => g.status === s).length;
   const thisYear = new Date().getFullYear();
 

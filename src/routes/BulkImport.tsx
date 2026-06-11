@@ -40,6 +40,8 @@ import {
   toPublicFields,
   type PublicFieldsPatch,
 } from '../lib/rawg';
+import { resolveWikipediaUrl } from '../lib/wikipedia';
+import { getPublicScore } from '../lib/igdb';
 import { toDisplayScore } from '../lib/stats';
 import { StatusBadge } from '../components/common/StatusBadge';
 
@@ -157,7 +159,11 @@ export function BulkImport() {
           if (canonTitle(rows[i].title) === canonTitle(top.name)) {
             // Confident match — safe to auto-apply.
             const detail = await getGameDetail(top.id, settings?.rawgApiKey);
-            setPatches((p) => ({ ...p, [i]: toPublicFields(detail) }));
+            const patch = toPublicFields(detail);
+            patch.wikiUrl = await resolveWikipediaUrl(patch.title);
+            const igdbScore = await getPublicScore(patch.title);
+            if (igdbScore !== undefined) patch.publicScore = igdbScore;
+            setPatches((p) => ({ ...p, [i]: patch }));
           } else {
             // Too loose to trust — don't overwrite; flag for manual handling.
             setLooseMatches((m) => ({ ...m, [i]: top.name }));

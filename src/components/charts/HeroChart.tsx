@@ -204,6 +204,7 @@ function BreakdownChart({ games, color }: { games: GameEntry[]; color: string })
               dataKey="name"
               width={150}
               tick={axisTick}
+              interval={0}
               tickFormatter={(v: string) => truncate(v)}
             />
             <Tooltip
@@ -412,7 +413,7 @@ function AbandonedChart({ games }: { games: GameEntry[] }) {
           >
             <CartesianGrid stroke="var(--mantine-color-default-border)" strokeDasharray="3 3" horizontal={false} />
             <XAxis type="number" tick={axisTick} allowDecimals={false} />
-            <YAxis type="category" dataKey="name" width={130} tick={axisTick} />
+            <YAxis type="category" dataKey="name" width={130} tick={axisTick} interval={0} />
             <Tooltip
               contentStyle={tooltipStyle}
               itemStyle={tooltipItemStyle}

@@ -69,6 +69,11 @@ export function GameCard({
             Variant
           </Badge>
         )}
+        {game.hidden && (
+          <Badge color="dark" variant="light" size="sm">
+            Hidden
+          </Badge>
+        )}
         {game.platforms.slice(0, 2).map((p) => (
           <Badge key={p} variant="outline" color="gray" size="sm">
             {p}

@@ -13,6 +13,12 @@
   to = "/.netlify/functions/xbox"
   status = 200
 
+# IGDB score proxy: same-origin endpoint (Twitch credentials stay server-side).
+[[redirects]]
+  from = "/api/igdb"
+  to = "/.netlify/functions/igdb"
+  status = 200
+
 # SPA fallback: let React Router handle client-side routes on hard refresh.
 # (Listed last so the function redirect above takes precedence.)
 [[redirects]]

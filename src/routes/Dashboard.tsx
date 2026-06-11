@@ -29,7 +29,10 @@ export function Dashboard() {
 
   const kpis = useMemo(() => computeKpis(games ?? []), [games]);
   const seriesCount = useMemo(
-    () => new Set((games ?? []).filter((g) => g.series).map((g) => g.series)).size,
+    () =>
+      new Set(
+        (games ?? []).filter((g) => g.series && !g.hidden).map((g) => g.series),
+      ).size,
     [games],
   );
 

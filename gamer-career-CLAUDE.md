@@ -32,11 +32,12 @@ No GitHub required to deploy — local git is just version history.
     status-transition timestamping + sourceTitle logic + `applyBulkEdit`/`deleteGames`),
     `hooks.ts` (useLiveQuery).
   - `src/lib/` — `stats.ts` (KPIs, repeats, histogram), `bulkEdit.ts` (pure `computeBulkPatch`/
-    `applyTagEdit` for multi-record edits), `backup.ts`, `rawg.ts`, `bulkImport.ts`
-    (parse/dedupe/canonTitle), `openxbl.ts` (Xbox client).
+    `applyTagEdit` for multi-record edits), `backup.ts`, `rawg.ts` (metadata; Metacritic-only score
+    fallback), `igdb.ts` (gamer `getPublicScore` via the proxy), `wikipedia.ts` (resolve a reference
+    article), `bulkImport.ts` (parse/dedupe/canonTitle), `openxbl.ts` (Xbox client).
   - `src/routes/` — `Dashboard`, `GamesView`, `BulkImport`, `Settings`.
   - `src/components/` — `layout` (App shell), `kpi`, `cards`, `filters`, `modal`, `charts`, `common`.
-  - `netlify/functions/xbox.mjs` — the OpenXBL proxy.
+  - `netlify/functions/` — `xbox.mjs` (OpenXBL proxy) + `igdb.mjs` (IGDB proxy, Twitch-app token).
 
 ## Domain model
 - **PlayStatus** (9) in 3 buckets: Open (not_started/backlog/wishlist), Current
@@ -53,6 +54,12 @@ No GitHub required to deploy — local git is just version history.
 - **Collections:** `isCollection` / `collectionId` / `excludeFromStats` (e.g. Ezio Collection ⊃
   AC2/Brotherhood; excluded members don't double-count in KPIs). Variants (`variantOfId`) are a
   separate axis — same game, different edition — and can group via "Group by original".
+- **`hidden`** = excluded from every list (only the `hidden` preset shows them) and every stat,
+  but kept in the DB so `flagDuplicates` skips it on re-sync. Set via modal/bulk edit; nav under
+  Manage → Hidden. Abandoned games can't be scored (modal clears + locks the rating; bulk-abandon
+  clears it too). Metadata: RAWG fills title/cover/genres/etc.; the **public score** comes from
+  IGDB's gamer rating (`igdb.ts` → `/api/igdb` proxy, Twitch-app creds; RAWG Metacritic is the
+  fallback), and the reference link resolves via `wikipedia.ts` (opensearch) — both in the apply flows.
 - **`sourceTitle`** = the original imported title, preserved across metadata rewrites — the
   stable key for duplicate detection.
 - **Bulk edit:** `GamesView` "Select" mode toggles checkboxes on cards/rows + a fixed selection

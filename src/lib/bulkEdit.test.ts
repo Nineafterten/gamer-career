@@ -26,6 +26,14 @@ describe('computeBulkPatch', () => {
     expect(patch).toEqual({ favorite: true });
   });
 
+  it('clears the personal score when status is set to abandoned', () => {
+    const g = makeGame({ status: 'completed', personalScore: 90 });
+    const patch = computeBulkPatch(g, { status: 'abandoned' });
+    expect(patch.status).toBe('abandoned');
+    expect('personalScore' in patch).toBe(true);
+    expect(patch.personalScore).toBeUndefined();
+  });
+
   it('clears text fields with empty strings', () => {
     const g = makeGame({ series: 'Halo', noteworthy: 'note' });
     const patch = computeBulkPatch(g, { series: '', noteworthy: '   ' });

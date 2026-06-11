@@ -184,8 +184,13 @@ export function GamesView() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [groupParam, presetKey]);
 
+  // Hidden records only surface in the dedicated Hidden view; every other preset
+  // filters them out.
   const candidates = useMemo(
-    () => (games ?? []).filter(preset.match),
+    () =>
+      (games ?? []).filter((g) =>
+        preset.key === 'hidden' ? !!g.hidden : !g.hidden && preset.match(g),
+      ),
     [games, preset],
   );
 

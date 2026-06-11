@@ -39,11 +39,14 @@ describe('scoreHistogram', () => {
 
 describe('inPlaySince', () => {
   it('uses the first Current-bucket event', () => {
+    // Capture the timestamp once — daysAgo() reads Date.now(), so calling it twice
+    // can differ by a millisecond.
+    const firstPlay = daysAgo(30);
     const g = makeGame({
       status: 'paused',
-      statusHistory: history(['active', daysAgo(30)], ['paused', daysAgo(5)]),
+      statusHistory: history(['active', firstPlay], ['paused', daysAgo(5)]),
     });
-    expect(inPlaySince(g)).toBe(daysAgo(30));
+    expect(inPlaySince(g)).toBe(firstPlay);
   });
 
   it('is undefined when the game is not in a Current state', () => {

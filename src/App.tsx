@@ -35,6 +35,7 @@ import {
   IconMoon,
   IconPlus,
   IconFileImport,
+  IconEyeOff,
 } from '@tabler/icons-react';
 
 import { GameModal } from './components/modal/GameModal';
@@ -95,6 +96,7 @@ const NAV_SECTIONS: NavSection[] = [
   {
     title: 'Manage',
     items: [
+      { label: 'Hidden', to: '/games?preset=hidden', icon: <IconEyeOff size={18} /> },
       { label: 'Bulk Add', to: '/bulk', icon: <IconFileImport size={18} /> },
       { label: 'Settings', to: '/settings', icon: <IconSettings size={18} /> },
     ],

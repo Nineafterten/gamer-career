@@ -55,6 +55,12 @@ export interface GameEntry {
   noteworthy?: string;
   favorite: boolean;
   favoriteRank?: number; // ordering within the Favorites view
+  /**
+   * Hidden from every list and excluded from every stat (e.g. junk imports, or a
+   * game someone else logged under your Xbox profile). Kept in the DB on purpose so
+   * `flagDuplicates` still recognizes it on a re-sync and skips re-adding it.
+   */
+  hidden?: boolean;
 
   // --- Collections (compilations) ---
   /** True when this entry represents a collection of other entries. */

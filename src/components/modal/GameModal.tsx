@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Anchor,
   Badge,
@@ -48,6 +48,8 @@ import {
   toPublicFields,
   type RawgSearchResult,
 } from '../../lib/rawg';
+import { resolveWikipediaUrl } from '../../lib/wikipedia';
+import { getPublicScore } from '../../lib/igdb';
 import { toDisplayScore } from '../../lib/stats';
 import type { AppSettings, GameEntry } from '../../types/game';
 import { StatusBadge } from '../common/StatusBadge';
@@ -75,6 +77,7 @@ interface FormValues {
   collectionId: string | null;
   excludeFromStats: boolean;
   variantOfId: string | null;
+  hidden: boolean;
   rawgId?: number;
 }
 
@@ -101,6 +104,7 @@ function gameToValues(game?: GameEntry): FormValues {
     collectionId: game?.collectionId ?? null,
     excludeFromStats: game?.excludeFromStats ?? false,
     variantOfId: game?.variantOfId ?? null,
+    hidden: game?.hidden ?? false,
     rawgId: game?.rawgId,
   };
 }
@@ -118,7 +122,10 @@ function valuesToDraft(v: FormValues): GameDraft {
     coverImageUrl: v.coverImageUrl.trim() || undefined,
     rawgId: v.rawgId,
     status: v.status,
-    personalScore: v.personalScore10 > 0 ? Math.round(v.personalScore10 * 10) : undefined,
+    personalScore:
+      v.status === 'abandoned' || v.personalScore10 <= 0
+        ? undefined
+        : Math.round(v.personalScore10 * 10),
     likes: v.likes,
     dislikes: v.dislikes,
     noteworthy: v.noteworthy.trim() || undefined,
@@ -130,6 +137,7 @@ function valuesToDraft(v: FormValues): GameDraft {
     collectionId: v.isCollection ? undefined : (v.collectionId ?? undefined),
     excludeFromStats: v.excludeFromStats || undefined,
     variantOfId: v.variantOfId ?? undefined,
+    hidden: v.hidden || undefined,
   };
 }
 
@@ -202,6 +210,11 @@ function GameView({
             {game.excludeFromStats && (
               <Badge color="gray" variant="outline">
                 Excluded from stats
+              </Badge>
+            )}
+            {game.hidden && (
+              <Badge color="dark" variant="filled">
+                Hidden
               </Badge>
             )}
             {game.variantOfId && (
@@ -371,6 +384,16 @@ function GameForm({
   const [matches, setMatches] = useState<RawgSearchResult[]>([]);
   const [busy, setBusy] = useState(false);
 
+  // You can't score a game you didn't play to a finish — clear + lock the rating
+  // whenever the status is Abandoned.
+  const isAbandoned = form.values.status === 'abandoned';
+  useEffect(() => {
+    if (isAbandoned && form.values.personalScore10 !== 0) {
+      form.setFieldValue('personalScore10', 0);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAbandoned]);
+
   const allLikes = uniq([...DEFAULT_LIKES, ...settings.customLikes]);
   const allDislikes = uniq([...DEFAULT_DISLIKES, ...settings.customDislikes]);
 
@@ -408,6 +431,11 @@ function GameForm({
     try {
       const detail = await getGameDetail(m.id, settings.rawgApiKey);
       const patch = toPublicFields(detail);
+      patch.wikiUrl = await resolveWikipediaUrl(patch.title);
+      // Public score comes from IGDB's gamer rating when available (RAWG's
+      // Metacritic value, set above, stays as the fallback otherwise).
+      const igdbScore = await getPublicScore(patch.title);
+      if (igdbScore !== undefined) patch.publicScore = igdbScore;
       form.setValues({
         ...form.values,
         title: patch.title,
@@ -571,13 +599,16 @@ function GameForm({
               <Rating
                 count={10}
                 fractions={2}
+                readOnly={isAbandoned}
                 value={form.values.personalScore10}
                 onChange={(v) => form.setFieldValue('personalScore10', v)}
               />
               <Text size="sm" c="dimmed">
-                {form.values.personalScore10 > 0
-                  ? form.values.personalScore10.toFixed(1)
-                  : 'Unrated'}
+                {isAbandoned
+                  ? "Abandoned games aren't rated"
+                  : form.values.personalScore10 > 0
+                    ? form.values.personalScore10.toFixed(1)
+                    : 'Unrated'}
               </Text>
             </Group>
           </div>
@@ -630,7 +661,18 @@ function GameForm({
             checked={form.values.excludeFromStats}
             {...form.getInputProps('excludeFromStats', { type: 'checkbox' })}
           />
+          <Switch
+            label="Hidden"
+            checked={form.values.hidden}
+            {...form.getInputProps('hidden', { type: 'checkbox' })}
+          />
         </Group>
+        {form.values.hidden && (
+          <Text size="xs" c="dimmed">
+            Hidden games are kept out of every list and stat (and re-syncs skip them), but
+            still live in your library — find them under Manage → Hidden.
+          </Text>
+        )}
         <Select
           label="Part of collection"
           placeholder="Standalone"

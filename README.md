@@ -67,6 +67,11 @@ statuses, scores, and favorites.
   (against your library and within the batch), optionally fetch metadata, then create.
 - **Game entry modal** — create / view / edit / delete a record. Delete always asks for
   confirmation. The **Fetch details** button autofills public info from RAWG (see below).
+  Abandoned games can't be scored (the rating clears + locks).
+- **Hidden records** — flag a record (e.g. junk Xbox-sync imports, or a game someone else
+  logged under your profile) as **Hidden**: it drops out of every list and stat but stays in
+  your library, so future syncs recognize it as a duplicate and skip it. Review/unhide them under
+  **Manage → Hidden**. Settable per-record or via bulk edit.
 - **Settings** — RAWG API key, light/dark/auto theme, JSON export/import, a confirm-gated
   "clear all games", and the app version.
 
@@ -89,8 +94,17 @@ The "Fetch details" button uses the free [RAWG](https://rawg.io/apidocs) API.
 2. Paste it in **Settings → Metadata (RAWG)**.
 3. In a game entry, type a title and click **Fetch details**, then pick a match.
 
-It fills title, publisher, release date, platforms, genres, a public score, and cover art.
-The key is stored locally in your browser (fine for a personal app; it is *not* included
+It fills title, publisher, release date, platforms, genres, and cover art, and resolves the
+**reference link to the matching English Wikipedia article** (via Wikipedia's open API).
+
+The **public score** comes from **IGDB's community (gamer) rating** — a trustworthy,
+gamer-maintained number from a source with a real API (GameFAQs has none and blocks scrapers,
+and RAWG/Metacritic skews unreliable for retro titles). This runs through a small server proxy,
+so it works on the deployed site once `TWITCH_CLIENT_ID` / `TWITCH_CLIENT_SECRET` are set (see
+DEPLOY.md) — not on the plain dev server, where it falls back to RAWG's Metacritic value or stays
+blank for you to fill.
+
+The RAWG key is stored locally in your browser (fine for a personal app; it is *not* included
 in exports).
 
 ## Data storage & backup

@@ -9,6 +9,8 @@ is a one-time setup; after that, deploys are a single command.
 - (Optional, for autofill) a free [RAWG](https://rawg.io/apidocs) API key.
 - (Optional, for Xbox sync) a free [OpenXBL](https://xbl.io) key, authorized with your Xbox
   account.
+- (Optional, for gamer scores) a free [Twitch developer app](https://dev.twitch.tv/console/apps)
+  — its Client ID + Secret authorize the IGDB API behind "Fetch details".
 
 ## 1. First deploy — no GitHub required
 
@@ -35,6 +37,11 @@ GitHub repo and `git push` to it, then connect it in the Netlify dashboard. Not 
   nothing else breaks.
 - **RAWG autofill:** the RAWG key is entered **per device** in the app (Settings → Metadata),
   not in env. Keep the canonical key in your password manager and paste it on each device.
+- **IGDB scores:** create a free app at [dev.twitch.tv/console/apps](https://dev.twitch.tv/console/apps)
+  (any name; OAuth redirect can be `http://localhost`), then add `TWITCH_CLIENT_ID` and
+  `TWITCH_CLIENT_SECRET` as Netlify environment variables and redeploy. "Fetch details" then fills
+  the public score from IGDB's community (gamer) rating. Until set, scores fall back to RAWG's
+  Metacritic value (or stay blank) — nothing else breaks.
 
 ## 3. Use it
 - Open the production URL on your phone/tablet/desktop. Each device keeps its own data
@@ -48,8 +55,9 @@ netlify dev          # Vite + the function; needs a local .env with OPENXBL_KEY 
 ```
 
 ## Notes
-- The Xbox proxy (`netlify/functions/xbox.mjs`) is stateless — it only forwards OpenXBL
-  requests with the server-side key; it stores no data.
+- The Xbox proxy (`netlify/functions/xbox.mjs`) and IGDB proxy (`netlify/functions/igdb.mjs`)
+  are stateless — they forward requests with server-side credentials and store no data. Both run
+  only on the deployed site or via `netlify dev`, not the plain `npm run dev` server.
 - If "Sync from Xbox" returns 0 titles, confirm `getTitleHistory()` in `src/lib/openxbl.ts`
   uses the title-history path your OpenXBL plan exposes (the proxy is generic, so it's a
   one-line change).

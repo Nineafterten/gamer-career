@@ -20,20 +20,22 @@ describe('toPublicFields', () => {
     expect(p.title).toBe('Hollow Knight');
     expect(p.publisher).toBe('Team Cherry');
     expect(p.releaseDate).toBe('2017-02-24');
-    expect(p.publicScore).toBe(90); // prefers metacritic
+    expect(p.publicScore).toBe(90); // the Metacritic critic score
     expect(p.genres).toEqual(['Metroidvania']);
     expect(p.platforms).toContain('Switch'); // normalized from "Nintendo Switch"
     expect(p.rawgId).toBe(42);
   });
 
-  it('falls back to rating*20 when metacritic is absent', () => {
+  it('leaves the public score blank when there is no Metacritic score', () => {
+    // The community rating is unreliable for retro games, so we no longer use it.
     const p = toPublicFields({ ...base, metacritic: null, rating: 4 });
-    expect(p.publicScore).toBe(80);
+    expect(p.publicScore).toBeUndefined();
   });
 
-  it('builds a Wikipedia search link when no website is given', () => {
-    const p = toPublicFields({ ...base, website: undefined });
+  it('always defaults the reference link to Wikipedia (ignores RAWG website)', () => {
+    const p = toPublicFields(base); // base has website: hollowknight.com
     expect(p.wikiUrl).toContain('en.wikipedia.org');
+    expect(p.wikiUrl).not.toContain('hollowknight.com');
   });
 });
 

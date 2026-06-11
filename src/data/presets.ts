@@ -121,6 +121,13 @@ export const PRESETS: Record<string, PresetConfig> = {
     chart: 'wishlist',
     match: (g) => g.status === 'wishlist',
   },
+  hidden: {
+    key: 'hidden',
+    label: 'Hidden',
+    description: "Records you've hidden — excluded from every other list and stat.",
+    chart: 'timeline',
+    match: (g) => !!g.hidden,
+  },
 };
 
 export function getPreset(key?: string | null): PresetConfig {

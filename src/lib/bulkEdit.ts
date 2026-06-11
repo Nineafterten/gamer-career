@@ -19,6 +19,7 @@ export interface BulkEditSpec {
   status?: PlayStatus;
   favorite?: boolean;
   excludeFromStats?: boolean;
+  hidden?: boolean;
   collectionId?: string | null; // null clears
   variantOfId?: string | null; // null clears
   platforms?: TagEdit;
@@ -64,11 +65,16 @@ export function computeBulkPatch(
   if (spec.publisher !== undefined) patch.publisher = spec.publisher.trim() || undefined;
   if (spec.noteworthy !== undefined) patch.noteworthy = spec.noteworthy.trim() || undefined;
 
-  if (spec.status !== undefined) patch.status = spec.status;
+  if (spec.status !== undefined) {
+    patch.status = spec.status;
+    // You can't rate a game you abandoned — clear any existing score.
+    if (spec.status === 'abandoned') patch.personalScore = undefined;
+  }
   if (spec.favorite !== undefined) patch.favorite = spec.favorite;
   if (spec.excludeFromStats !== undefined) {
     patch.excludeFromStats = spec.excludeFromStats || undefined;
   }
+  if (spec.hidden !== undefined) patch.hidden = spec.hidden || undefined;
 
   if (spec.collectionId !== undefined && !game.isCollection) {
     patch.collectionId = spec.collectionId ?? undefined;
