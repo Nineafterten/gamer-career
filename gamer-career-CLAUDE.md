@@ -2,7 +2,7 @@
 
 A personal "video-game career" dashboard/wiki: record every game you've played, curate by play
 status, and explore the library through data visualizations. **Fully client-side** React SPA +
-one tiny serverless function (the Xbox proxy). Deployed on Netlify.
+two tiny serverless functions (the Xbox + IGDB proxies). Deployed on Netlify.
 
 > Quick context for Claude: this is a finished, shipped app. Read this file first, then the
 > relevant `src/` files. Match existing patterns. Run `npm run test` + `npm run build` before
@@ -11,17 +11,18 @@ one tiny serverless function (the Xbox proxy). Deployed on Netlify.
 ## Run / build / test / deploy
 ```bash
 npm install
-npm run dev        # Vite dev server — the Xbox proxy is NOT available here
-netlify dev        # Vite + the function; needs a local .env with OPENXBL_KEY
+npm run dev        # Vite dev server — the proxies are NOT available here (scores/sync fall back)
+netlify dev        # Vite + the functions; needs a local .env (OPENXBL_KEY + Twitch creds)
 npm run build      # tsc -b + vite build (must be clean)
 npm run test       # Vitest (watch); test:run / coverage / typecheck also available
 ```
-Deploy: see `DEPLOY.md` (`netlify deploy --build --prod`; set `OPENXBL_KEY` env var in Netlify).
+Deploy: see `DEPLOY.md` (`netlify deploy --build --prod`; set `OPENXBL_KEY` +
+`TWITCH_CLIENT_ID`/`TWITCH_CLIENT_SECRET` env vars in Netlify).
 No GitHub required to deploy — local git is just version history.
 
 ## Stack & architecture
 - React 18 · Vite · TypeScript · Mantine v7 (UI/theming) · Recharts · Dexie/IndexedDB ·
-  React Router v6. One Netlify Function (Node) for the Xbox proxy.
+  React Router v6. Two Netlify Functions (Node): the Xbox + IGDB proxies.
 - **Storage:** data lives only in the browser (IndexedDB), **per device**. JSON export/import
   (Settings) is the backup. No accounts, no server database. RAWG key is entered per device.
 - **Layout:**
@@ -106,3 +107,6 @@ auto-sync, a dedupe/merge tool for already-duplicated records, CSV export.
 - Per-device storage + export/import over a backend (owner chose simplicity).
 - Completed / Done With kept as separate 1:1 status views.
 - Xbox import via a stateless Netlify Function proxy (fixes CORS + hides the key, keeps data client-side).
+- Public score from **IGDB's gamer `rating`** (via the same proxy pattern): GameFAQs — the owner's
+  preferred source — has no API and 403s scrapers, and RAWG/Metacritic skews unreliable for retro
+  games. IGDB is the gamer-maintained number with a real API. RAWG Metacritic remains the fallback.
