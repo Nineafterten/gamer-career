@@ -4,7 +4,6 @@ import {
   IconCircleCheck,
   IconClipboardList,
   IconClock,
-  IconDeviceGamepad2,
   IconFingerprint,
   IconHeart,
   IconList,
@@ -182,14 +181,6 @@ export function Dashboard() {
           icon={<IconPercentage size={22} />}
           color="green"
           to="/games?preset=completed"
-        />
-        <KpiCard
-          label="Played This Year"
-          value={kpis.playedThisYear}
-          sub={`${new Date().getFullYear()} starts & finishes`}
-          icon={<IconDeviceGamepad2 size={22} />}
-          color="orange"
-          to="/games"
         />
       </SimpleGrid>
     </Stack>

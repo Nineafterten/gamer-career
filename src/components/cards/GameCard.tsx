@@ -36,7 +36,13 @@ export function GameCard({
     >
       <Card.Section>
         {game.coverImageUrl ? (
-          <Image src={game.coverImageUrl} h={120} alt={game.title} />
+          <Image
+            src={game.coverImageUrl}
+            h={120}
+            alt={game.title}
+            loading="lazy"
+            decoding="async"
+          />
         ) : (
           <Box h={120} className={styles.placeholder}>
             <IconDeviceGamepad size={40} opacity={0.8} />
@@ -56,16 +62,22 @@ export function GameCard({
       )}
 
       <Group justify="space-between" mt="sm" gap="xs" wrap="nowrap">
-        <Text fw={600} lineClamp={1} title={game.title}>
+        <Text className={styles.title} fw={600} lineClamp={1} title={game.title}>
           {game.title}
         </Text>
-        {game.favorite && <IconHeartFilled size={16} color="var(--mantine-color-pink-5)" />}
+        {game.favorite && (
+          <IconHeartFilled
+            size={16}
+            color="var(--mantine-color-pink-5)"
+            className={styles.favoriteIcon}
+          />
+        )}
       </Group>
 
       <Group gap={6} mt={6}>
         <StatusBadge status={game.status} />
         {game.variantOfId && (
-          <Badge color="grape" variant="light" size="sm">
+          <Badge color="orange" variant="light" size="sm">
             Variant
           </Badge>
         )}

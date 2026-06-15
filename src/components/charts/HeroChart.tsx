@@ -4,7 +4,6 @@ import {
   Bar,
   BarChart,
   CartesianGrid,
-  Cell,
   Legend,
   ReferenceLine,
   ResponsiveContainer,
@@ -23,9 +22,9 @@ import {
   needsScore,
   type ChartKind,
 } from '../../data/presets';
-import { bucketOf } from '../../data/vocab';
+import { STATUSES, statusLabel } from '../../data/vocab';
 import { scoreHistogram } from '../../lib/stats';
-import type { GameEntry } from '../../types/game';
+import type { GameEntry, PlayStatus } from '../../types/game';
 import styles from './HeroChart.module.css';
 
 const HEIGHT = 280;
@@ -44,11 +43,8 @@ const C = {
   indigo: '#5c7cfa',
 };
 
-const BUCKET_COLOR: Record<string, string> = {
-  open: C.blue,
-  current: C.teal,
-  closed: C.grape,
-};
+/** Maps a status's Mantine color name (from vocab) to the chart's hex palette. */
+const STATUS_HEX: Record<string, string> = C;
 
 const axisTick = { fill: 'var(--mantine-color-dimmed)', fontSize: 12 };
 const tooltipStyle = {
@@ -72,7 +68,7 @@ function TimelineTip({ active, payload }: any) {
     <div className={styles.tooltip}>
       <div className={styles.tooltipTitle}>{p.title}</div>
       <div className={styles.tooltipSub}>
-        {p.year} · score {p.y}
+        {statusLabel(p.status)} · {p.year} · score {p.y}
       </div>
     </div>
   );
@@ -106,22 +102,44 @@ function truncate(s = '', n = 22) {
 }
 
 /* ----------------------------- Timeline ----------------------------- */
-function TimelineChart({ games }: { games: GameEntry[] }) {
-  const data = useMemo(
-    () =>
-      games
-        .filter((g) => g.releaseDate)
-        .map((g) => ({
-          x: new Date(g.releaseDate as string).getTime(),
-          y: typeof g.publicScore === 'number' ? g.publicScore : 50,
-          title: g.title,
-          year: (g.releaseDate as string).slice(0, 4),
-          bucket: bucketOf(g.status),
-        })),
-    [games],
-  );
+interface TimelinePoint {
+  x: number;
+  y: number;
+  title: string;
+  year: string;
+  status: PlayStatus;
+}
 
-  if (!data.length) return <Empty message="No games with a release date to plot yet." />;
+function TimelineChart({ games }: { games: GameEntry[] }) {
+  // Group points by status so each status gets its own colored Scatter (and a
+  // legend entry) — far easier to read than one color per bucket when hundreds
+  // of dots pile up around the most common scores.
+  const groups = useMemo(() => {
+    const byStatus = new Map<PlayStatus, TimelinePoint[]>();
+    for (const g of games) {
+      if (!g.releaseDate) continue;
+      const point: TimelinePoint = {
+        x: new Date(g.releaseDate).getTime(),
+        y: typeof g.publicScore === 'number' ? g.publicScore : 50,
+        title: g.title,
+        year: g.releaseDate.slice(0, 4),
+        status: g.status,
+      };
+      const existing = byStatus.get(g.status);
+      if (existing) existing.push(point);
+      else byStatus.set(g.status, [point]);
+    }
+    // Emit in the canonical status order so the legend reads predictably.
+    return STATUSES.filter((s) => byStatus.has(s.value)).map((s) => ({
+      status: s.value,
+      label: s.label,
+      color: STATUS_HEX[s.color] ?? C.gray,
+      data: byStatus.get(s.value)!,
+    }));
+  }, [games]);
+
+  const total = groups.reduce((n, g) => n + g.data.length, 0);
+  if (!total) return <Empty message="No games with a release date to plot yet." />;
 
   return (
     <ResponsiveContainer width="100%" height={HEIGHT}>
@@ -143,13 +161,19 @@ function TimelineChart({ games }: { games: GameEntry[] }) {
           name="Public score"
           label={{ value: 'Public score', angle: -90, position: 'insideLeft', fill: 'var(--mantine-color-dimmed)', fontSize: 12 }}
         />
-        <ZAxis range={[80, 80]} />
+        {/* Smaller symbol area (was 80 ≈ 10px) so dense clusters stay readable. */}
+        <ZAxis range={[55, 55]} />
         <Tooltip content={<TimelineTip />} />
-        <Scatter data={data}>
-          {data.map((d, i) => (
-            <Cell key={i} fill={BUCKET_COLOR[d.bucket]} />
-          ))}
-        </Scatter>
+        <Legend wrapperStyle={legendStyle} iconSize={9} />
+        {groups.map((g) => (
+          <Scatter
+            key={g.status}
+            name={g.label}
+            data={g.data}
+            fill={g.color}
+            fillOpacity={0.8}
+          />
+        ))}
       </ScatterChart>
     </ResponsiveContainer>
   );

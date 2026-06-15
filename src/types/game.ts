@@ -93,6 +93,15 @@ export interface AppSettings {
   colorScheme: 'light' | 'dark' | 'auto';
   customLikes: string[];
   customDislikes: string[];
+  /**
+   * Authoritative, user-managed like/dislike label lists (from Manage → Labels).
+   * Undefined until the user first edits or adds a label, at which point the
+   * effective set (built-in defaults + custom + in-use) is materialized here and
+   * becomes the single source of truth — so renaming or deleting a former default
+   * actually sticks instead of reappearing from the hardcoded defaults.
+   */
+  likeLabels?: string[];
+  dislikeLabels?: string[];
 }
 
 /** Versioned backup envelope produced by the export tool. */

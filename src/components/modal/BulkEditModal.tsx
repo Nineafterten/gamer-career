@@ -17,21 +17,15 @@ import {
 import { notifications } from '@mantine/notifications';
 
 import { useGames, useSettings } from '../../db/hooks';
-import { saveSettings } from '../../db/database';
 import { applyBulkEdit } from '../../db/repository';
-import {
-  COMMON_GENRES,
-  COMMON_PLATFORMS,
-  DEFAULT_DISLIKES,
-  DEFAULT_LIKES,
-  STATUS_GROUPS,
-} from '../../data/vocab';
+import { COMMON_GENRES, COMMON_PLATFORMS, STATUS_GROUPS } from '../../data/vocab';
 import type { BulkEditSpec, TagEdit, TagMode } from '../../lib/bulkEdit';
+import {
+  registerNewLabels,
+  resolveDislikeLabels,
+  resolveLikeLabels,
+} from '../../lib/labels';
 import type { GameEntry, PlayStatus } from '../../types/game';
-
-function uniq(values: string[]): string[] {
-  return Array.from(new Set(values));
-}
 
 /** Enable switch + the field's input(s) below it (disabled until enabled). */
 function FieldRow({
@@ -157,8 +151,8 @@ export function BulkEditModal({
     .filter((g: GameEntry) => !g.variantOfId && !g.isCollection)
     .map((g) => ({ value: g.id, label: g.title }));
 
-  const likesData = uniq([...DEFAULT_LIKES, ...(settings?.customLikes ?? [])]);
-  const dislikesData = uniq([...DEFAULT_DISLIKES, ...(settings?.customDislikes ?? [])]);
+  const likesData = settings ? resolveLikeLabels(settings) : [];
+  const dislikesData = settings ? resolveDislikeLabels(settings) : [];
 
   function buildSpec(): BulkEditSpec {
     const spec: BulkEditSpec = {};
@@ -180,18 +174,11 @@ export function BulkEditModal({
 
   async function persistNewVocab() {
     if (!settings) return;
-    const knownLikes = new Set(likesData);
-    const knownDislikes = new Set(dislikesData);
-    const newLikes = on('likes') ? likes.values.filter((l) => !knownLikes.has(l)) : [];
-    const newDislikes = on('dislikes')
-      ? dislikes.values.filter((d) => !knownDislikes.has(d))
-      : [];
-    if (newLikes.length || newDislikes.length) {
-      await saveSettings({
-        customLikes: uniq([...settings.customLikes, ...newLikes]),
-        customDislikes: uniq([...settings.customDislikes, ...newDislikes]),
-      });
-    }
+    await registerNewLabels(
+      settings,
+      on('likes') ? likes.values : [],
+      on('dislikes') ? dislikes.values : [],
+    );
   }
 
   async function apply() {

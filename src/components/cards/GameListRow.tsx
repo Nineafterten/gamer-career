@@ -40,7 +40,14 @@ export function GameListRow({
         )}
         <div className={styles.thumb}>
           {game.coverImageUrl ? (
-            <Image src={game.coverImageUrl} w={44} h={44} alt={game.title} />
+            <Image
+              src={game.coverImageUrl}
+              w={44}
+              h={44}
+              alt={game.title}
+              loading="lazy"
+              decoding="async"
+            />
           ) : (
             <IconDeviceGamepad size={22} opacity={0.85} />
           )}
@@ -52,7 +59,11 @@ export function GameListRow({
               {game.title}
             </Text>
             {game.favorite && (
-              <IconHeartFilled size={14} color="var(--mantine-color-pink-5)" />
+              <IconHeartFilled
+                size={14}
+                color="var(--mantine-color-pink-5)"
+                className={styles.favoriteIcon}
+              />
             )}
           </Group>
           <Text size="xs" c="dimmed" lineClamp={1}>
@@ -62,7 +73,7 @@ export function GameListRow({
 
         <StatusBadge status={game.status} />
         {game.variantOfId && (
-          <Badge color="grape" variant="light" size="sm" visibleFrom="sm">
+          <Badge color="orange" variant="light" size="sm" visibleFrom="sm">
             Variant
           </Badge>
         )}

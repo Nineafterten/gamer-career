@@ -88,11 +88,14 @@ export async function importFromFile(
   }
 
   if (data.settings) {
-    const { customLikes, customDislikes, colorScheme } = data.settings;
+    const { customLikes, customDislikes, colorScheme, likeLabels, dislikeLabels } =
+      data.settings;
     await saveSettings({
       ...(customLikes ? { customLikes } : {}),
       ...(customDislikes ? { customDislikes } : {}),
       ...(colorScheme ? { colorScheme } : {}),
+      ...(likeLabels ? { likeLabels } : {}),
+      ...(dislikeLabels ? { dislikeLabels } : {}),
     });
   }
 

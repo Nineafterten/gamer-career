@@ -21,3 +21,13 @@
   left: 8px;
   z-index: 2;
 }
+
+/* Let the (clamped) title absorb all the shrink in the title row... */
+.title {
+  min-width: 0;
+}
+
+/* ...so the favorite heart keeps a constant size no matter the title length. */
+.favoriteIcon {
+  flex-shrink: 0;
+}

@@ -129,6 +129,68 @@ export async function deleteGames(ids: string[]): Promise<void> {
   if (ids.length) await db.games.bulkDelete(ids);
 }
 
+function uniqTags(values: string[]): string[] {
+  return Array.from(new Set(values));
+}
+
+/**
+ * Rename a like/dislike label on every record that uses it (deduping in case the
+ * target already exists on a record). Returns how many records changed.
+ */
+export async function renameLabelOnRecords(
+  kind: 'like' | 'dislike',
+  from: string,
+  to: string,
+): Promise<number> {
+  const trimmed = to.trim();
+  if (!trimmed || trimmed === from) return 0;
+  let changed = 0;
+  await db.transaction('rw', db.games, async () => {
+    const all = await db.games.toArray();
+    const now = nowIso();
+    const updates: GameEntry[] = [];
+    for (const g of all) {
+      const tags = kind === 'like' ? g.likes : g.dislikes;
+      if (!tags.includes(from)) continue;
+      const next = uniqTags(tags.map((t) => (t === from ? trimmed : t)));
+      updates.push(
+        kind === 'like'
+          ? { ...g, likes: next, updatedAt: now }
+          : { ...g, dislikes: next, updatedAt: now },
+      );
+    }
+    if (updates.length) await db.games.bulkPut(updates);
+    changed = updates.length;
+  });
+  return changed;
+}
+
+/** Remove a like/dislike label from every record that uses it. Returns # changed. */
+export async function deleteLabelFromRecords(
+  kind: 'like' | 'dislike',
+  label: string,
+): Promise<number> {
+  let changed = 0;
+  await db.transaction('rw', db.games, async () => {
+    const all = await db.games.toArray();
+    const now = nowIso();
+    const updates: GameEntry[] = [];
+    for (const g of all) {
+      const tags = kind === 'like' ? g.likes : g.dislikes;
+      if (!tags.includes(label)) continue;
+      const next = tags.filter((t) => t !== label);
+      updates.push(
+        kind === 'like'
+          ? { ...g, likes: next, updatedAt: now }
+          : { ...g, dislikes: next, updatedAt: now },
+      );
+    }
+    if (updates.length) await db.games.bulkPut(updates);
+    changed = updates.length;
+  });
+  return changed;
+}
+
 /** Replace the entire library (used by import / reset). */
 export async function replaceAllGames(games: GameEntry[]): Promise<void> {
   await db.transaction('rw', db.games, async () => {

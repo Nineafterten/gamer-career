@@ -33,18 +33,21 @@ No GitHub required to deploy — local git is just version history.
     status-transition timestamping + sourceTitle logic + `applyBulkEdit`/`deleteGames`),
     `hooks.ts` (useLiveQuery).
   - `src/lib/` — `stats.ts` (KPIs, repeats, histogram), `bulkEdit.ts` (pure `computeBulkPatch`/
-    `applyTagEdit` for multi-record edits), `backup.ts`, `rawg.ts` (metadata; Metacritic-only score
+    `applyTagEdit` for multi-record edits), `labels.ts` (like/dislike label resolution +
+    rename/delete cascade), `backup.ts`, `rawg.ts` (metadata; Metacritic-only score
     fallback), `igdb.ts` (gamer `getPublicScore` via the proxy), `wikipedia.ts` (resolve a reference
     article), `bulkImport.ts` (parse/dedupe/canonTitle), `openxbl.ts` (Xbox client).
-  - `src/routes/` — `Dashboard`, `GamesView`, `BulkImport`, `Settings`.
+  - `src/routes/` — `Dashboard`, `GamesView`, `BulkImport`, `ManageLabels`, `Settings`.
   - `src/components/` — `layout` (App shell), `kpi`, `cards`, `filters`, `modal`, `charts`, `common`.
   - `netlify/functions/` — `xbox.mjs` (OpenXBL proxy) + `igdb.mjs` (IGDB proxy, Twitch-app token).
 
 ## Domain model
 - **PlayStatus** (9) in 3 buckets: Open (not_started/backlog/wishlist), Current
   (active/passive/paused), Closed (completed/done_with/abandoned). Bucket derived from `vocab.ts`.
-- Every status change is appended to `statusHistory` → powers played-this-year. (Manual
-  start/end/duration fields were removed — impractical for a retroactively curated library.)
+- Every status change is appended to `statusHistory` (status timeline). Manual
+  start/end/duration fields were removed — impractical for a retroactively curated library;
+  the old "Played this year" KPI was dropped for the same reason (the helpers
+  `inPlaySince`/`closedAt` in `stats.ts` remain, just unused by any KPI).
 - **Variants** = alternate editions of the SAME game (remaster/port/HD). A record points at its
   canonical original via `variantOfId` (distinct from collections, which bundle *different* games;
   the two can co-exist). `repeats` KPI = count of variant records; `unique` KPI = total − variants.
@@ -61,6 +64,14 @@ No GitHub required to deploy — local git is just version history.
   clears it too). Metadata: RAWG fills title/cover/genres/etc.; the **public score** comes from
   IGDB's gamer rating (`igdb.ts` → `/api/igdb` proxy, Twitch-app creds; RAWG Metacritic is the
   fallback), and the reference link resolves via `wikipedia.ts` (opensearch) — both in the apply flows.
+  The edit form also has a **manual IGDB-lookup button** beside the Public Score input (opens an
+  IGDB search in a new tab) for copying a score by hand when the auto-fetch is unavailable.
+- **Labels:** like/dislike tags are plain strings stored on each record (the text *is* the identity
+  — no IDs). Manage → Labels (`ManageLabels` + `lib/labels.ts`) renames/deletes them by cascading
+  across every record; the authoritative picker list materializes into
+  `settings.likeLabels`/`dislikeLabels` on first edit (defaults + custom + in-use), so a renamed or
+  deleted default doesn't resurface. `resolve{Like,Dislike}Labels` is the single source the form +
+  bulk-edit pickers read; new labels typed in a form go through `registerNewLabels`.
 - **`sourceTitle`** = the original imported title, preserved across metadata rewrites — the
   stable key for duplicate detection.
 - **Bulk edit:** `GamesView` "Select" mode toggles checkboxes on cards/rows + a fixed selection
@@ -76,9 +87,12 @@ No GitHub required to deploy — local git is just version history.
   drops `(year)`/punctuation) gates metadata auto-apply; loose matches are flagged, not applied.
 - **Charts:** themed tooltips via `HeroChart.module.css` + Recharts item/label styles; the
   Backlog/In Play/Paused/Wishlist views share a Platform/Genre breakdown toggle and the rating
-  view a Compare(scatter)/Distribution(histogram) toggle; hero card is `role="img"`.
+  view a Compare(scatter)/Distribution(histogram) toggle; the All-Games/timeline scatter colors
+  dots per play-status (one `<Scatter>` + legend entry per status); hero card is `role="img"`.
 - **Perf:** routes are `React.lazy` + Suspense; `vite.config.ts` `manualChunks` splits
-  react/mantine/recharts/dexie (Recharts only loads on games views).
+  react/mantine/recharts/dexie (Recharts only loads on games views). `GamesView` caps how many
+  cards/rows mount (`INITIAL_RENDER`, with Load more / Show all); cover images use native
+  `loading="lazy"` + `decoding="async"`.
 - **Tests:** Vitest; `src/test/setup.ts` polyfills (node Blob/File, fake-indexeddb, matchMedia,
   ResizeObserver); `*.test.ts(x)` colocated; test files excluded from the production `tsc` build.
 - **Dev helper:** `window.gc` (db + repository fns) exists in dev only (`import.meta.env.DEV`),

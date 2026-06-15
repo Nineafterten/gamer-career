@@ -20,6 +20,11 @@
   text-align: right;
 }
 
+/* Keep the favorite heart a constant size next to a long, clamped title. */
+.favoriteIcon {
+  flex-shrink: 0;
+}
+
 .selected {
   outline: 2px solid var(--mantine-primary-color-filled);
   outline-offset: -2px;

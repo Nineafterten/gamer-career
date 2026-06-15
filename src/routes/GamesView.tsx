@@ -56,6 +56,11 @@ const GROUP_OPTIONS = [
   { value: 'original', label: 'Group by original' },
 ];
 
+// Cap how many cards/rows mount at once — with 500+ records, rendering every
+// match up front is the main source of lag. The rest is one click away.
+const INITIAL_RENDER = 60;
+const RENDER_STEP = 60;
+
 function initialFilters(presetKey: string | null): Filters {
   const sort: SortKey = presetKey === 'favorites' ? 'favoriteRank' : 'releaseDate';
   return { ...DEFAULT_FILTERS, sort };
@@ -168,6 +173,7 @@ export function GamesView() {
   const [selectionMode, setSelectionMode] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [bulkOpen, setBulkOpen] = useState(false);
+  const [renderLimit, setRenderLimit] = useState(INITIAL_RENDER);
 
   // Reset filters and any selection when the preset changes (e.g. via a KPI).
   useEffect(() => {
@@ -183,6 +189,12 @@ export function GamesView() {
     setGroupBy((groupParam as GroupBy) || 'none');
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [groupParam, presetKey]);
+
+  // Any change to what's shown (filters, grouping, preset) collapses the list
+  // back to the first page so a new view never starts fully expanded.
+  useEffect(() => {
+    setRenderLimit(INITIAL_RENDER);
+  }, [filters, groupBy, preset.key]);
 
   // Hidden records only surface in the dedicated Hidden view; every other preset
   // filters them out.
@@ -217,9 +229,14 @@ export function GamesView() {
     return filtered.sort((a, b) => compareBySort(a, b, filters.sort));
   }, [candidates, filters]);
 
+  // Only the first `renderLimit` matches are mounted; "Load more" / "Show all"
+  // raise the cap. Grouping is applied to the capped slice.
+  const capped = useMemo(() => visible.slice(0, renderLimit), [visible, renderLimit]);
+  const hasMore = visible.length > capped.length;
+
   const groups = useMemo(
-    () => groupGames(visible, groupBy, games ?? []),
-    [visible, groupBy, games],
+    () => groupGames(capped, groupBy, games ?? []),
+    [capped, groupBy, games],
   );
 
   if (!games) {
@@ -382,7 +399,7 @@ export function GamesView() {
                     {group.games.length}
                   </Badge>
                   {groupBy === 'original' && group.games.some((g) => g.variantOfId) && (
-                    <Badge variant="light" color="grape">
+                    <Badge variant="light" color="orange">
                       +{group.games.filter((g) => g.variantOfId).length} repeats
                     </Badge>
                   )}
@@ -397,6 +414,27 @@ export function GamesView() {
               )}
             </Stack>
           ))}
+          {hasMore && (
+            <Group justify="center" align="center" mt="xs" gap="sm">
+              <Text size="sm" c="dimmed">
+                Showing {capped.length} of {visible.length}
+              </Text>
+              <Button
+                size="xs"
+                variant="default"
+                onClick={() => setRenderLimit((n) => n + RENDER_STEP)}
+              >
+                Load {Math.min(RENDER_STEP, visible.length - capped.length)} more
+              </Button>
+              <Button
+                size="xs"
+                variant="light"
+                onClick={() => setRenderLimit(Number.POSITIVE_INFINITY)}
+              >
+                Show all
+              </Button>
+            </Group>
+          )}
         </Stack>
       )}
 

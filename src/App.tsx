@@ -36,6 +36,7 @@ import {
   IconPlus,
   IconFileImport,
   IconEyeOff,
+  IconTags,
 } from '@tabler/icons-react';
 
 import { GameModal } from './components/modal/GameModal';
@@ -54,6 +55,9 @@ const BulkImport = lazy(() =>
 );
 const Settings = lazy(() =>
   import('./routes/Settings').then((m) => ({ default: m.Settings })),
+);
+const ManageLabels = lazy(() =>
+  import('./routes/ManageLabels').then((m) => ({ default: m.ManageLabels })),
 );
 
 interface NavItem {
@@ -96,6 +100,7 @@ const NAV_SECTIONS: NavSection[] = [
   {
     title: 'Manage',
     items: [
+      { label: 'Labels', to: '/labels', icon: <IconTags size={18} /> },
       { label: 'Hidden', to: '/games?preset=hidden', icon: <IconEyeOff size={18} /> },
       { label: 'Bulk Add', to: '/bulk', icon: <IconFileImport size={18} /> },
       { label: 'Settings', to: '/settings', icon: <IconSettings size={18} /> },
@@ -219,6 +224,7 @@ export function App() {
             <Route path="/" element={<Dashboard />} />
             <Route path="/games" element={<GamesView />} />
             <Route path="/bulk" element={<BulkImport />} />
+            <Route path="/labels" element={<ManageLabels />} />
             <Route path="/settings" element={<Settings />} />
           </Routes>
         </Suspense>

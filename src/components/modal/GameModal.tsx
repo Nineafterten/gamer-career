@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import {
+  ActionIcon,
   Anchor,
   Badge,
   Box,
@@ -20,6 +21,7 @@ import {
   Text,
   Textarea,
   TextInput,
+  Tooltip,
 } from '@mantine/core';
 import { useForm } from '@mantine/form';
 import { modals } from '@mantine/modals';
@@ -33,12 +35,9 @@ import {
 
 import { useGame, useGames, useSettings } from '../../db/hooks';
 import { createGame, deleteGame, updateGame, type GameDraft } from '../../db/repository';
-import { saveSettings } from '../../db/database';
 import {
   COMMON_GENRES,
   COMMON_PLATFORMS,
-  DEFAULT_DISLIKES,
-  DEFAULT_LIKES,
   STATUS_BY_VALUE,
   STATUS_GROUPS,
 } from '../../data/vocab';
@@ -50,6 +49,11 @@ import {
 } from '../../lib/rawg';
 import { resolveWikipediaUrl } from '../../lib/wikipedia';
 import { getPublicScore } from '../../lib/igdb';
+import {
+  registerNewLabels,
+  resolveDislikeLabels,
+  resolveLikeLabels,
+} from '../../lib/labels';
 import { toDisplayScore } from '../../lib/stats';
 import type { AppSettings, GameEntry } from '../../types/game';
 import { StatusBadge } from '../common/StatusBadge';
@@ -141,27 +145,6 @@ function valuesToDraft(v: FormValues): GameDraft {
   };
 }
 
-function uniq(values: string[]): string[] {
-  return Array.from(new Set(values));
-}
-
-async function persistNewVocab(
-  settings: AppSettings,
-  likes: string[],
-  dislikes: string[],
-) {
-  const knownLikes = new Set([...DEFAULT_LIKES, ...settings.customLikes]);
-  const knownDislikes = new Set([...DEFAULT_DISLIKES, ...settings.customDislikes]);
-  const newLikes = likes.filter((l) => !knownLikes.has(l));
-  const newDislikes = dislikes.filter((d) => !knownDislikes.has(d));
-  if (newLikes.length || newDislikes.length) {
-    await saveSettings({
-      customLikes: uniq([...settings.customLikes, ...newLikes]),
-      customDislikes: uniq([...settings.customDislikes, ...newDislikes]),
-    });
-  }
-}
-
 /** Read-only presentation for "view" mode. */
 function GameView({
   game,
@@ -218,12 +201,12 @@ function GameView({
               </Badge>
             )}
             {game.variantOfId && (
-              <Badge color="grape" variant="filled">
+              <Badge color="orange" variant="filled">
                 Variant
               </Badge>
             )}
             {variantCount > 0 && (
-              <Badge color="grape" variant="light">
+              <Badge color="orange" variant="light">
                 +{variantCount} version{variantCount === 1 ? '' : 's'}
               </Badge>
             )}
@@ -394,8 +377,8 @@ function GameForm({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAbandoned]);
 
-  const allLikes = uniq([...DEFAULT_LIKES, ...settings.customLikes]);
-  const allDislikes = uniq([...DEFAULT_DISLIKES, ...settings.customDislikes]);
+  const allLikes = resolveLikeLabels(settings);
+  const allDislikes = resolveDislikeLabels(settings);
 
   const allGames = useGames() ?? [];
   const collectionOptions = allGames
@@ -406,6 +389,18 @@ function GameForm({
   const variantOptions = allGames
     .filter((g) => g.id !== game?.id && !g.variantOfId && !g.isCollection)
     .map((g) => ({ value: g.id, label: g.title }));
+
+  // Manual interim for the public score: open IGDB (our canonical source, same
+  // 0-100 scale) pre-searched for this title so the score can be copied back in.
+  function openIgdbLookup() {
+    const q = form.values.title.trim();
+    if (!q) return;
+    window.open(
+      `https://www.igdb.com/search?type=1&q=${encodeURIComponent(q)}`,
+      '_blank',
+      'noopener,noreferrer',
+    );
+  }
 
   async function runSearch() {
     if (!form.values.title.trim()) {
@@ -469,7 +464,7 @@ function GameForm({
         const created = await createGame(draft);
         id = created.id;
       }
-      await persistNewVocab(settings, values.likes, values.dislikes);
+      await registerNewLabels(settings, values.likes, values.dislikes);
       notifications.show({ color: 'teal', message: `Saved “${draft.title}”.` });
       onDone(id);
     } catch (err) {
@@ -545,12 +540,26 @@ function GameForm({
             {...form.getInputProps('releaseDate')}
           />
           <TextInput label="Series" {...form.getInputProps('series')} />
-          <NumberInput
-            label="Public score (0–100)"
-            min={0}
-            max={100}
-            {...form.getInputProps('publicScore')}
-          />
+          <Group gap="xs" align="flex-end" wrap="nowrap">
+            <NumberInput
+              label="Public score (0–100)"
+              min={0}
+              max={100}
+              className={styles.grow}
+              {...form.getInputProps('publicScore')}
+            />
+            <Tooltip label="Look this title up on IGDB (opens a new tab)" withinPortal>
+              <ActionIcon
+                variant="light"
+                size="lg"
+                aria-label="Look up public score on IGDB"
+                onClick={openIgdbLookup}
+                disabled={!form.values.title.trim()}
+              >
+                <IconExternalLink size={18} />
+              </ActionIcon>
+            </Tooltip>
+          </Group>
         </SimpleGrid>
         <TagsInput
           label="Platforms"

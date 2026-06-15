@@ -40,7 +40,6 @@ export interface Kpis {
   avgPersonal?: number; // 0-100
   avgPublic?: number; // 0-100
   completionRate: number; // 0-1, closedPositive / total
-  playedThisYear: number;
 }
 
 export function computeKpis(allGames: GameEntry[]): Kpis {
@@ -48,7 +47,6 @@ export function computeKpis(allGames: GameEntry[]): Kpis {
   // collection) don't count toward totals/averages.
   const games = allGames.filter((g) => !g.excludeFromStats && !g.hidden);
   const byStatus = (s: PlayStatus) => games.filter((g) => g.status === s).length;
-  const thisYear = new Date().getFullYear();
 
   const completed = byStatus('completed');
   const doneWith = byStatus('done_with');
@@ -57,11 +55,6 @@ export function computeKpis(allGames: GameEntry[]): Kpis {
   // Each variant edition is real time spent (counted in `total`), but it's not a
   // distinct game — so `unique` collapses variants onto their canonical original.
   const variants = games.filter((g) => g.variantOfId).length;
-
-  const playedThisYear = games.filter((g) => {
-    const since = inPlaySince(g) ?? closedAt(g);
-    return since ? new Date(since).getFullYear() === thisYear : false;
-  }).length;
 
   return {
     total,
@@ -89,7 +82,6 @@ export function computeKpis(allGames: GameEntry[]): Kpis {
         .filter((v): v is number => typeof v === 'number'),
     ),
     completionRate: total ? closedPositive / total : 0,
-    playedThisYear,
   };
 }
 
