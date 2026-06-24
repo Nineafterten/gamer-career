@@ -57,9 +57,11 @@ const GROUP_OPTIONS = [
 ];
 
 // Cap how many cards/rows mount at once — with 500+ records, rendering every
-// match up front is the main source of lag. The rest is one click away.
-const INITIAL_RENDER = 60;
-const RENDER_STEP = 60;
+// match up front is the main source of lag. The rest is one click away. The cap
+// applies only to the flat (ungrouped) list; grouped views render in full so a
+// group like a series shows all its members regardless of the active sort.
+const INITIAL_RENDER = 50;
+const RENDER_STEP = 50;
 
 function initialFilters(presetKey: string | null): Filters {
   const sort: SortKey = presetKey === 'favorites' ? 'favoriteRank' : 'releaseDate';
@@ -229,9 +231,14 @@ export function GamesView() {
     return filtered.sort((a, b) => compareBySort(a, b, filters.sort));
   }, [candidates, filters]);
 
-  // Only the first `renderLimit` matches are mounted; "Load more" / "Show all"
-  // raise the cap. Grouping is applied to the capped slice.
-  const capped = useMemo(() => visible.slice(0, renderLimit), [visible, renderLimit]);
+  // Only the first `renderLimit` matches are mounted in the flat list; "Load more"
+  // / "Show all" raise the cap. Grouped views skip the cap entirely so a group
+  // (e.g. a series) always shows every member, not just those near the top of the
+  // current sort — otherwise the cap silently truncates groups.
+  const capped = useMemo(
+    () => (groupBy === 'none' ? visible.slice(0, renderLimit) : visible),
+    [visible, renderLimit, groupBy],
+  );
   const hasMore = visible.length > capped.length;
 
   const groups = useMemo(
