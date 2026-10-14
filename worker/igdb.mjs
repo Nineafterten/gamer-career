@@ -22,7 +22,10 @@ async function getToken(clientId, clientSecret) {
       `&client_secret=${encodeURIComponent(clientSecret)}&grant_type=client_credentials`,
     { method: 'POST' },
   );
-  if (!res.ok) throw new Error(`Twitch token request failed (${res.status}).`);
+  if (!res.ok) {
+    const detail = (await res.text().catch(() => '')).slice(0, 200);
+    throw new Error(`Twitch token request failed (${res.status}): ${detail}`);
+  }
   const data = await res.json();
   cachedToken = {
     token: data.access_token,
