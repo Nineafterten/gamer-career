@@ -1,14 +1,58 @@
 # 🎮 Gamer Career
 
-<!-- TODO (presentation): add example screenshots and link the sample seed lists in `seeds/`
-     once the UI has rich data to show off. -->
-
 A personal dashboard & wiki for tracking your video-game hobby career — record every
 game you've played, curate them by play status, and explore your history through
 data visualizations. Fully client-side: your data lives in your browser, with a
 one-click JSON export for backups.
 
 ![Built with React, Vite, TypeScript, Mantine](https://img.shields.io/badge/React-Vite-blueviolet)
+
+**Live demo:** [gamer-career.nineafterten.com](https://gamer-career.nineafterten.com).
+It starts empty; choose **Load sample library** to explore the author's own library of
+590 games.
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/games-dark.webp">
+  <img src="docs/screenshots/games-light.webp" alt="All Games: a timeline of 590 games by release year and public score, colored by play status, above a grid of cover-art cards">
+</picture>
+
+## Screens
+
+**Dashboard.** Every KPI card deep-links into the games view with the matching filter
+and chart.
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/dashboard-dark.webp">
+  <img src="docs/screenshots/dashboard-light.webp" alt="Dashboard: sixteen KPI cards including 579 games tracked, 140 completed, 37 favorites and a 7.6 / 8.1 average of my score versus the public score">
+</picture>
+
+**Completed.** My score against the public score; dots above the dashed line are games I
+rate higher than the crowd.
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/completed-dark.webp">
+  <img src="docs/screenshots/completed-light.webp" alt="Completed: a scatter of my score versus the public score for 143 completed games, with a dashed parity line, above cover-art cards">
+</picture>
+
+**Favorites.** Standouts clustered by genre in a treemap, sorted by favorite rank.
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/favorites-dark.webp">
+  <img src="docs/screenshots/favorites-light.webp" alt="Favorites: a genre treemap led by Action, Adventure and RPG, above favorite cards such as World of Warcraft and Super Mario Galaxy">
+</picture>
+
+**On a phone.** The same views collapse to a single column behind a menu.
+
+<p>
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/phone-dashboard-dark.webp">
+  <img src="docs/screenshots/phone-dashboard-light.webp" width="280" alt="Dashboard on a phone: KPI cards in two columns">
+</picture>
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/phone-games-dark.webp">
+  <img src="docs/screenshots/phone-games-light.webp" width="280" alt="All Games on a phone: the release timeline and filters in a single column">
+</picture>
+</p>
 
 ## Quick start
 
