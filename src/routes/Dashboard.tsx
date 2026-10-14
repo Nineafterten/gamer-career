@@ -22,6 +22,7 @@ import {
 import { useGames } from '../db/hooks';
 import { computeKpis, toDisplayScore } from '../lib/stats';
 import { KpiCard } from '../components/kpi/KpiCard';
+import { EmptyLibrary } from '../components/common/EmptyLibrary';
 
 export function Dashboard() {
   const games = useGames();
@@ -40,6 +41,15 @@ export function Dashboard() {
       <Center h={400}>
         <Loader />
       </Center>
+    );
+  }
+
+  if (games.length === 0) {
+    return (
+      <Stack gap="lg">
+        <Title order={2}>Your Gaming Career</Title>
+        <EmptyLibrary />
+      </Stack>
     );
   }
 

@@ -42,6 +42,7 @@ import { GameCard } from '../components/cards/GameCard';
 import { GameListRow } from '../components/cards/GameListRow';
 import { HeroChart } from '../components/charts/HeroChart';
 import { BulkEditModal } from '../components/modal/BulkEditModal';
+import { EmptyLibrary } from '../components/common/EmptyLibrary';
 import { useGameModal } from '../components/modal/useGameModal';
 import type { GameEntry } from '../types/game';
 import styles from './GamesView.module.css';
@@ -251,6 +252,18 @@ export function GamesView() {
       <Center h={400}>
         <Loader />
       </Center>
+    );
+  }
+
+  if (games.length === 0) {
+    return (
+      <Stack>
+        <div>
+          <Title order={2}>{preset.label}</Title>
+          <Text c="dimmed">{preset.description}</Text>
+        </div>
+        <EmptyLibrary />
+      </Stack>
     );
   }
 

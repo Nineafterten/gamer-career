@@ -30,7 +30,9 @@ npm run coverage   # tests + coverage report
 
 On first run the app starts empty — add games one at a time, paste/upload a list via **Bulk
 Add**, or import a JSON backup. Every game defaults to **Not Started**, so you curate your own
-statuses, scores, and favorites.
+statuses, scores, and favorites. To look around first, **Load sample library** on the empty
+dashboard adds the author's own library (`src/data/sample-library.json`: about 590 games with
+covers, release dates, scores and notes); **Settings → Clear all games** removes them again.
 
 ## Features
 

@@ -24,7 +24,7 @@ export type GameDraft = Omit<
   statusAt?: string;
 };
 
-function statusEvent(status: PlayStatus, at: string): StatusEvent {
+export function statusEvent(status: PlayStatus, at: string): StatusEvent {
   return { status, bucket: bucketOf(status), at };
 }
 

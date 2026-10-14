@@ -244,7 +244,11 @@ export function Settings() {
       </Card>
 
       <Text size="xs" c="dimmed" ta="center">
-        Gamer Career v{__APP_VERSION__} · built {__BUILD_DATE__}
+        Gamer Career v{__APP_VERSION__} · built {__BUILD_DATE__} · game data and cover images
+        from{' '}
+        <Anchor href="https://rawg.io" target="_blank">
+          RAWG
+        </Anchor>
       </Text>
     </Stack>
   );
