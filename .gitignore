@@ -7,9 +7,10 @@ dist-ssr
 !.vscode/extensions.json
 .claude/launch.json
 
-# Secrets — never commit. OPENXBL_KEY lives in Netlify env / a local .env.
+# Secrets — never commit. The keys are Worker secrets in Cloudflare / a local .env.
 .env
 .env.*
 !.env.example
 .netlify
+.wrangler
 *.csv

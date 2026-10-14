@@ -1,5 +1,5 @@
-// Client for the Xbox (OpenXBL) sync — talks to our own Netlify proxy
-// (/api/xbox), never to xbl.io directly. See netlify/functions/xbox.mjs.
+// Client for the Xbox (OpenXBL) sync — talks to our own Worker proxy
+// (/api/xbox), never to xbl.io directly. See worker/xbox.mjs.
 
 import type { ParsedRow } from './bulkImport';
 
@@ -13,7 +13,7 @@ async function xbl<T = unknown>(path: string): Promise<T> {
     res = await fetch(`${PROXY}?path=${encodeURIComponent(path)}`);
   } catch {
     throw new OpenXblError(
-      'Could not reach the Xbox proxy. It only runs on the deployed site (or via `netlify dev`).',
+      'Could not reach the Xbox proxy. It only runs on the deployed site (or via `npx wrangler dev`).',
     );
   }
   if (res.status === 503) {
@@ -34,7 +34,7 @@ async function xbl<T = unknown>(path: string): Promise<T> {
     return JSON.parse(text) as T;
   } catch {
     throw new OpenXblError(
-      'Xbox sync only runs on the deployed site (or via `netlify dev`), not the plain dev server.',
+      'Xbox sync only runs on the deployed site (or via `npx wrangler dev`), not the plain dev server.',
     );
   }
 }

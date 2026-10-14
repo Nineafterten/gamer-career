@@ -4,13 +4,13 @@
 // Why this exists: IGDB requires a Twitch OAuth app token and sends no CORS
 // header, so a static browser app can't call it directly. This function holds the
 // TWITCH_CLIENT_ID / TWITCH_CLIENT_SECRET, mints + caches an app access token, and
-// runs a search the browser asks for (same-origin via the /api/igdb redirect). It
+// runs a search the browser asks for (same-origin at /api/igdb). It
 // stores nothing — game data still lives only in the user's browser.
 
 const IGDB_URL = 'https://api.igdb.com/v4/games';
 const TOKEN_URL = 'https://id.twitch.tv/oauth2/token';
 
-// Cached app token (per warm function instance). Twitch tokens last ~60 days.
+// Cached app token (per Worker isolate). Twitch tokens last ~60 days.
 let cachedToken = null; // { token, expiresAt }
 
 async function getToken(clientId, clientSecret) {
@@ -31,17 +31,17 @@ async function getToken(clientId, clientSecret) {
   return cachedToken.token;
 }
 
-export async function handler(event) {
-  const clientId = process.env.TWITCH_CLIENT_ID;
-  const clientSecret = process.env.TWITCH_CLIENT_SECRET;
+export async function handleIgdb(url, env) {
+  const clientId = env.TWITCH_CLIENT_ID;
+  const clientSecret = env.TWITCH_CLIENT_SECRET;
   if (!clientId || !clientSecret) {
     return json(503, {
       error:
-        'IGDB scores are not configured: set TWITCH_CLIENT_ID and TWITCH_CLIENT_SECRET on the site.',
+        'IGDB scores are not configured: set the TWITCH_CLIENT_ID and TWITCH_CLIENT_SECRET secrets on the Worker.',
     });
   }
 
-  const query = (event.queryStringParameters?.q ?? '').trim();
+  const query = (url.searchParams.get('q') ?? '').trim();
   if (!query) return json(400, { error: 'A search query (q) is required.' });
 
   try {
@@ -60,21 +60,15 @@ export async function handler(event) {
       },
       body,
     });
-    const text = await res.text();
-    return {
-      statusCode: res.status,
+    return new Response(await res.text(), {
+      status: res.status,
       headers: { 'Content-Type': 'application/json' },
-      body: text,
-    };
+    });
   } catch (err) {
     return json(502, { error: `IGDB request failed: ${String(err)}` });
   }
 }
 
-function json(statusCode, obj) {
-  return {
-    statusCode,
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(obj),
-  };
+function json(status, obj) {
+  return Response.json(obj, { status });
 }

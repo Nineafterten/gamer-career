@@ -1,5 +1,5 @@
-// Client for IGDB-sourced public scores — talks to our own Netlify proxy
-// (/api/igdb), never to api.igdb.com directly. See netlify/functions/igdb.mjs.
+// Client for IGDB-sourced public scores — talks to our own Worker proxy
+// (/api/igdb), never to api.igdb.com directly. See worker/igdb.mjs.
 //
 // IGDB's `rating` is its community (gamer) score — the trustworthy, gamer-
 // maintained number we want, from a source with a real API (GameFAQs has none

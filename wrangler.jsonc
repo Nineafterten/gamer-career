@@ -1,0 +1,15 @@
+// Static build in dist/ plus the Xbox and IGDB proxies in worker/. Cloudflare
+// builds and deploys it from GitHub. The proxies' keys are Worker secrets
+// (OPENXBL_KEY, TWITCH_CLIENT_ID, TWITCH_CLIENT_SECRET), set in the dashboard.
+{
+  "name": "gamer-career",
+  "main": "worker/index.mjs",
+  "compatibility_date": "2026-09-15",
+  "assets": {
+    "directory": "./dist",
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/api/*"]
+  },
+  "workers_dev": true
+}

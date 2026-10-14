@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { titleHistoryToRows } from './openxbl';
-// The Netlify function is plain JS outside src/, imported here for a unit test.
-import { handler } from '../../netlify/functions/xbox.mjs';
+// The Worker's proxy is plain JS outside src/, imported here for a unit test.
+import { handleXbox } from '../../worker/xbox.mjs';
 
 describe('titleHistoryToRows', () => {
   it('maps titles + devices to bulk-import rows', () => {
@@ -39,33 +39,32 @@ describe('titleHistoryToRows', () => {
 });
 
 describe('xbox proxy handler', () => {
+  const call = (path: string, env: Record<string, string> = {}) =>
+    handleXbox(new URL(`https://example.test/api/xbox?path=${encodeURIComponent(path)}`), env);
+
   afterEach(() => {
-    vi.unstubAllEnvs();
     vi.unstubAllGlobals();
   });
 
   it('503s when OPENXBL_KEY is not set', async () => {
-    vi.stubEnv('OPENXBL_KEY', '');
-    const res = await handler({ queryStringParameters: { path: '/api/v2/account' } });
-    expect(res.statusCode).toBe(503);
+    const res = await call('/api/v2/account');
+    expect(res.status).toBe(503);
   });
 
   it('400s for a path outside /api/v2/', async () => {
-    vi.stubEnv('OPENXBL_KEY', 'k');
-    const res = await handler({ queryStringParameters: { path: '/evil' } });
-    expect(res.statusCode).toBe(400);
+    const res = await call('/evil', { OPENXBL_KEY: 'k' });
+    expect(res.status).toBe(400);
   });
 
   it('forwards a valid path with the key header', async () => {
-    vi.stubEnv('OPENXBL_KEY', 'secret');
     const fetchMock = vi
       .fn()
       .mockResolvedValue({ status: 200, text: async () => '{"ok":true}' });
     vi.stubGlobal('fetch', fetchMock);
 
-    const res = await handler({ queryStringParameters: { path: '/api/v2/account' } });
-    expect(res.statusCode).toBe(200);
-    expect(res.body).toContain('ok');
+    const res = await call('/api/v2/account', { OPENXBL_KEY: 'secret' });
+    expect(res.status).toBe(200);
+    expect(await res.text()).toContain('ok');
     expect(fetchMock).toHaveBeenCalledWith(
       'https://xbl.io/api/v2/account',
       expect.objectContaining({

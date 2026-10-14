@@ -118,14 +118,15 @@ in exports).
 - **Per-device:** IndexedDB is scoped to each browser, so data does **not** sync across
   devices automatically — use export/import to move it (phone ↔ tablet ↔ desktop).
 
-## Deploy (Netlify)
+## Deploy (Cloudflare)
 
-The app is a static SPA. `netlify.toml` is included (build `npm run build`, publish `dist`,
-SPA redirect so client routes survive a refresh) — point Netlify at the repo and it builds.
+Live at https://gamer-career.nineafterten.com. One Cloudflare Worker serves the static build
+and the two API proxies; Cloudflare builds it from GitHub on every push to `main`. Setup,
+keys and local testing are in `DEPLOY.md`.
 
 - `public/robots.txt` + a `noindex` meta keep the personal site out of search engines.
 - No auth is needed: your data lives only in your browser, not on the server, so a visitor
-  to the URL just sees an empty app.
+  to the URL sees an empty app (with the option to load the sample library).
 - **RAWG key is per device** — it's stored locally, never in the build or exports. Keep the
   canonical key in your password manager and paste it into Settings once per device.
 
